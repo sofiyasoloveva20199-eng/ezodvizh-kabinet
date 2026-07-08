@@ -170,12 +170,14 @@ th{color:var(--muted);font-weight:500;font-size:11px;letter-spacing:.5px;text-tr
 
 <script>
 /* ================= STORAGE ================= */
-const LS_USERS='ezo_users_v1', LS_SESSION='ezo_session_v1';
+const LS_USERS='ezo_users_v1', LS_SESSION='ezo_session_v1', LS_LAST='ezo_last_user';
 const store={
   users(){try{return JSON.parse(localStorage.getItem(LS_USERS))||{}}catch(e){return {}}},
   saveUsers(u){try{localStorage.setItem(LS_USERS,JSON.stringify(u));return true}catch(e){return false}},
   session(){return localStorage.getItem(LS_SESSION)},
-  setSession(u){u?localStorage.setItem(LS_SESSION,u):localStorage.removeItem(LS_SESSION)}
+  setSession(u){u?localStorage.setItem(LS_SESSION,u):localStorage.removeItem(LS_SESSION)},
+  last(){return localStorage.getItem(LS_LAST)},
+  setLast(u){u?localStorage.setItem(LS_LAST,u):localStorage.removeItem(LS_LAST)}
 };
 function hash(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0}return 'h'+h}
 let U=null; // current user object (reference into users store)
@@ -320,8 +322,8 @@ function doAuth(){
     login(user);
   }
 }
-function login(user){USERNAME=user;store.setSession(user);boot()}
-function logout(){store.setSession(null);location.reload()}
+function login(user){USERNAME=user;store.setSession(user);store.setLast(user);boot()}
+function logout(){store.setSession(null);store.setLast(null);location.reload()}
 
 /* ================= APP BOOT ================= */
 const NAV=[
@@ -745,8 +747,10 @@ function exportData(){const blob=new Blob([JSON.stringify(U,null,2)],{type:'appl
 (async function init(){
   setAuthMode('login');
   await loadContent();
-  const s=store.session();
-  if(s&&store.users()[s]){USERNAME=s;boot()}
+  const users=store.users();
+  let s=store.session();
+  if(!(s&&users[s])){const last=store.last();if(last&&users[last])s=last;}
+  if(s&&users[s]){USERNAME=s;store.setSession(s);store.setLast(s);boot()}
 })();
 </script>
 </body>
