@@ -478,8 +478,8 @@ function renderBlock(i){
     ${b.intro?`<div class="card"><div class="muted" style="white-space:pre-wrap">${esc(b.intro)}</div></div>`:''}
     ${exs}
     <div class="card" style="text-align:center">
-      ${st.done?'<div class="pill">✓ Блок пройден</div><div class="mini" style="margin-top:8px">Следующий блок открыт (если опубликован).</div>'
-        :'<button class="btn" onclick="completeBlock('+i+')">Отметить блок пройденным</button><div class="mini" style="margin-top:8px">Выполни задания и отметь блок — откроется следующий.</div>'}
+      ${st.submitted?'<div class="pill">✓ Отправлено на проверку</div><div class="mini" style="margin-top:8px">Работа ушла преподавателю. Следующий блок открыт.</div>'
+        :'<button class="btn" onclick="submitBlock('+i+')">Выполни задания и отправь на проверку</button>'}
     </div>`;
 }
 function renderExercise(bId,ei,ex,ans){
@@ -507,8 +507,15 @@ function saveEx(bId,ei,v){blockState(bId).ex[ei]=v;persist()}
 function saveLead(bId,ei,v){const s=blockState(bId);if(!s.ex[ei]||typeof s.ex[ei]!=='object')s.ex[ei]={lead:'',cells:[]};s.ex[ei].lead=v;persist()}
 function saveCell(bId,ei,r,c,v){const s=blockState(bId);if(!s.ex[ei]||typeof s.ex[ei]!=='object')s.ex[ei]={lead:'',cells:[]};if(!s.ex[ei].cells)s.ex[ei].cells=[];if(!s.ex[ei].cells[r])s.ex[ei].cells[r]=[];s.ex[ei].cells[r][c]=v;persist()}
 function addRow(bId,ei){const s=blockState(bId);if(!s.ex[ei]||typeof s.ex[ei]!=='object')s.ex[ei]={lead:'',cells:[]};if(!s.ex[ei].cells)s.ex[ei].cells=[];s.ex[ei].cells.push([]);persist();render()}
-function completeBlock(i){const b=BLOCKS[i];const s=blockState(b.id);s.done=true;
-  U.survey[b.name]={level:'Понятно',note:(U.survey[b.name]&&U.survey[b.name].note)||''};persist();toast('Блок пройден ✓');openB=null;render()}
+async function submitBlock(i){const b=BLOCKS[i];const s=blockState(b.id);
+  s.done=true;s.submitted=true;s.submittedAt=today();
+  U.survey[b.name]={level:'Понятно',note:(U.survey[b.name]&&U.survey[b.name].note)||''};persist();
+  const payload={student:U.name||USERNAME,block:b.name,answers:s.ex,date:today()};
+  if(U.settings.webhook){
+    try{await fetch(U.settings.webhook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});toast('Отправлено на проверку ✓')}
+    catch(e){toast('Сохранено, но не удалось отправить — проверим позже')}
+  }else{toast('Отправлено на проверку ✓ (бот подключим позже)')}
+  openB=null;render();}
 
 /* ---------- TESTS ---------- */
 let quizState=null; // {id, answers:{}, checked:bool}
