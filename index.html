@@ -96,10 +96,23 @@ th{color:var(--muted);font-weight:500;font-size:11px;letter-spacing:.5px;text-tr
   border:1px solid var(--accent);color:var(--text);padding:13px 22px;border-radius:13px;box-shadow:0 12px 40px rgba(0,0,0,.5);
   transition:transform .3s;z-index:60;font-size:14px}
 .toast.show{transform:translateX(-50%) translateY(0)}
-.daycard{background:linear-gradient(150deg,#241436,#140d20);border:1px solid var(--border);border-radius:18px;
-  padding:26px;text-align:center;min-height:150px;display:flex;flex-direction:column;justify-content:center;gap:12px}
-.daycard .type{letter-spacing:2px;font-size:11px;text-transform:uppercase;color:var(--accent)}
-.daycard .msg{font-family:var(--serif);font-size:21px;line-height:1.4}
+/* Tarot-style card of the day */
+.tarot{perspective:1200px}
+.tarot-inner{position:relative;background:
+   radial-gradient(120% 90% at 50% -10%,rgba(168,85,247,.28),transparent 60%),
+   linear-gradient(160deg,#251540 0,#170e24 55%,#120b1c 100%);
+  border:1.5px solid rgba(212,175,120,.45);border-radius:20px;padding:30px 26px;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.5),inset 0 0 60px rgba(168,85,247,.08);overflow:hidden;
+  animation:draw .55s cubic-bezier(.2,.8,.2,1)}
+@keyframes draw{from{opacity:0;transform:rotateY(28deg) translateY(10px)}to{opacity:1;transform:none}}
+.tarot-inner::before,.tarot-inner::after{content:'✦';position:absolute;color:rgba(212,175,120,.6);font-size:13px}
+.tarot-inner::before{top:12px;left:14px}.tarot-inner::after{bottom:12px;right:14px}
+.tarot-frame{position:absolute;inset:8px;border:1px solid rgba(212,175,120,.2);border-radius:14px;pointer-events:none}
+.tarot-sym{font-size:46px;filter:drop-shadow(0 0 14px rgba(168,85,247,.6));margin-bottom:6px}
+.tarot-name{font-family:var(--serif);font-size:26px;letter-spacing:3px;text-transform:uppercase;color:#e7d3a8}
+.tarot-eyebrow{letter-spacing:3px;font-size:10px;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.tarot-div{width:60px;height:1px;background:linear-gradient(90deg,transparent,rgba(212,175,120,.7),transparent);margin:12px auto}
+.tarot-msg{font-family:var(--serif);font-size:19px;line-height:1.5;color:var(--text);max-width:520px;margin:0 auto}
 .icircle{width:34px;height:34px;border-radius:50%;background:var(--accent-soft);border:1px solid var(--border);
   display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
 .hr{height:1px;background:var(--border2);margin:18px 0}
@@ -170,37 +183,26 @@ let THEMES=[
  'Актуальные и упаковка','Прогревы','Продуктовая линейка','Продажи и воронки'
 ];
 
+let TESTS_ENABLED=false;
 let CARD_MSGS=[
- {t:'Пост',m:'Сними рилс-ответ на вопрос, который тебе чаще всего задают в директ.'},
- {t:'Пост',m:'Покажи в сторис один расклад в процессе — без лица клиента, только руки и карты.'},
- {t:'Пост',m:'Разбери одну карту через конкретную сцену клиента: «пришла девушка, он не писал 3 недели…».'},
- {t:'Пост',m:'Сегодня — кейс. Возьми клиента с явным до/после и распиши анонимно по шагам.'},
- {t:'Пост',m:'Вовлекалка в сторис: «Сколько дней он уже молчит? Пиши цифру».'},
- {t:'Пост',m:'Заголовочный рилс на боль «не знаю, туда ли я иду». Заземли в утреннюю сцену с ноутом.'},
- {t:'Действие',m:'Проверь шапку профиля: есть ли осязаемая выгода, а не «помогаю обрести гармонию»?'},
- {t:'Действие',m:'Выпиши 5 дословных фраз клиентов из переписок — это твои будущие хуки.'},
- {t:'Действие',m:'Собери одно новое актуальное «Как проходит расклад» и закрепи прайс.'},
- {t:'Пост',m:'Сними «проверку» практики или ритуала с реакцией «ого, сработало».'},
- {t:'Пост',m:'Пост-миф: развенчай одно частое заблуждение о таро/эзотерике.'},
- {t:'Пост',m:'Открытый вопрос в ленте: «Кто возвращал бывшего — как вы сошлись?».'},
- {t:'Действие',m:'Возьми свой слабый заголовок и перепиши его через язык результата.'},
- {t:'Действие',m:'Запиши в тетрадь 3 идеи контента, пока не забыла. Просто накидай.'},
- {t:'Пост',m:'Личное: расскажи, как ты пришла в практику. Одна честная история цепляет сильнее пользы.'},
- {t:'Напутствие',m:'Один выложенный пост сегодня лучше, чем идеальная стратегия «с понедельника».'},
- {t:'Напутствие',m:'Тебя не должны любить все. Тебя должны найти свои. Пиши для них.'},
- {t:'Напутствие',m:'«Чушь сниму» — это страх, а не факт. Сними и посмотри на цифры через 3 дня.'},
- {t:'Напутствие',m:'Контент — это марафон касаний. Не один пост продаёт, а система.'},
- {t:'Напутствие',m:'Сегодня достаточно сделать одно действие для блога. Выбери его и закрой.'},
- {t:'Действие',m:'Ответь на 3 комментария так, чтобы увести человека на кодовое слово.'},
- {t:'Пост',m:'Карусель с готовым инструментом: шаблон, промт или 5 фраз — то, что уносят и применяют.'},
- {t:'Пост',m:'Сними «день из жизни» через свою оптику — жизненный формат сближает.'},
- {t:'Действие',m:'Проверь: у последнего поста есть чёткий следующий шаг (CTA)? Если нет — допиши.'},
- {t:'Напутствие',m:'Сравнивать себя с блогерами уровня «звезда» — воровать у себя энергию. Смотри на свой прогресс.'},
- {t:'Пост',m:'Разбери частую ошибку твоей ниши: «что делают не так, когда…».'},
- {t:'Действие',m:'Заполни контент-план на 3 дня вперёд — тема, цель, формат, дедлайн.'},
- {t:'Пост',m:'Расскажи мини-историю клиента, где расклад «попал в точку». Анонимно.'},
- {t:'Напутствие',m:'Готово лучше, чем идеально. Выложи и улучшай на ходу.'},
- {t:'Действие',m:'Сегодня продай мягко: напомни в сторис, что у тебя можно заказать и как.'}
+ {sym:'🔥',name:'Костёр',m:'Нас, ведьм, веками сжигали за то, что мы ЗНАЛИ. Твой страх проявиться — это память тела, а не сегодняшняя опасность. Костёр давно потух. Выходи в свет.'},
+ {sym:'👑',name:'Налог',m:'Хейт — это налог на популярность. Прилетело — значит, тебя стало видно. Плати спокойствием и работай дальше.'},
+ {sym:'🤝',name:'Доверие',m:'Без доверия не бывает продаж. Люди покупают не расклад — они покупают ТЕБЯ. Дай себя узнать.'},
+ {sym:'🌉',name:'Мост',m:'Сильный контент = что Я хочу донести + что клиенту нужно услышать. Соедини два берега — тогда попадёшь.'},
+ {sym:'⚡',name:'Искра',m:'Не бойся вызывать эмоции. Начни с простого — любопытство и удивление. Эмоция решает, досмотрят ли до конца.'},
+ {sym:'🪥',name:'Ритуал',m:'Контент — это рутина, как почистить зубы. Не вдохновение, а привычка. Сделай сегодня, даже если «не то настроение».'},
+ {sym:'🎭',name:'Маска',m:'Перфекционизм — это скрытая форма саботажа. «Ещё не идеально» часто значит «я боюсь». Выложи как есть.'},
+ {sym:'🌙',name:'Творец',m:'Только ты строишь свою реальность. Не алгоритмы, не хейтеры, не «а вдруг». Ты.'},
+ {sym:'💰',name:'Золото',m:'Блог — единственное место, где на своих кринж- и треш-историях можно зарабатывать деньги. Не прячь их.'},
+ {sym:'💎',name:'Правда',m:'В искренности — вся сила. Отшлифованное скользит мимо, живое цепляет и остаётся.'},
+ {sym:'📸',name:'Сейчас',m:'Сними контент прямо сейчас — чем бы ты ни занималась. Фото или видео, 10 секунд. Материал важнее повода.'},
+ {sym:'🔄',name:'Наоборот',m:'Когда сложно — помни: в мире всё работает наоборот. Перед тем как накачать мышцы, чувствуешь слабость. Перед тем как поумнеть — глупость. Ты просто в начале.'},
+ {sym:'🕯️',name:'Свет',m:'Ведьма — это путь помощи людям. Но он невозможен, если о тебе никто не знает. Заявить о себе — часть служения.'},
+ {sym:'📖',name:'История',m:'Люди любят не нравоучения, а живые истории. Не учи — рассказывай.'},
+ {sym:'✨',name:'Зеркало',m:'Ты красивая во всех ракурсах. Помни об этом, когда рука тянется удалить кадр.'},
+ {sym:'🦋',name:'Проявление',m:'Страх показаться — не факт, а привычка прятаться. Один пост сегодня растворяет его сильнее любой мантры.'},
+ {sym:'🌀',name:'Касание',m:'Один пост не продаёт — продаёт система касаний. Твоё дело — просто не пропадать.'},
+ {sym:'🔮',name:'Свои',m:'Тебя не должны любить все. Тебя должны найти свои. Пиши для них — и они придут.'}
 ];
 
 // QUIZZES — data-driven
@@ -261,6 +263,7 @@ async function loadContent(){
     if(Array.isArray(c.quizzes)&&c.quizzes.length)QUIZZES=c.quizzes;
     if(Array.isArray(c.planGoals)&&c.planGoals.length)PLAN_GOALS=c.planGoals;
     if(Array.isArray(c.planFormats)&&c.planFormats.length)PLAN_FORMATS=c.planFormats;
+    if(typeof c.testsEnabled==='boolean')TESTS_ENABLED=c.testsEnabled;
   }
 }
 
@@ -363,11 +366,17 @@ function pgHome(){
   </div>
   <div class="grid g2">
     <div>
-      <div class="daycard">
-        <span class="type">Карта дня · ${esc(c.t)}</span>
-        <div class="msg">${esc(c.m)}</div>
-        <div><button class="btn ghost sm" onclick="drawCard()">Вытянуть заново</button></div>
+      <div class="tarot" id="tarot">
+        <div class="tarot-inner">
+          <div class="tarot-frame"></div>
+          <div class="tarot-eyebrow">Карта дня</div>
+          <div class="tarot-sym">${c.sym||'☾'}</div>
+          <div class="tarot-name">${esc(c.name||'')}</div>
+          <div class="tarot-div"></div>
+          <div class="tarot-msg">${esc(c.m)}</div>
+        </div>
       </div>
+      <div style="text-align:center;margin-top:12px"><button class="btn ghost sm" onclick="drawCard()">☾ Вытянуть другую</button></div>
     </div>
     <div class="card">
       <h3>Что дальше?</h3>
@@ -385,19 +394,36 @@ function drawCard(){U.card.idx=Math.floor(Math.random()*CARD_MSGS.length);U.card
 
 /* ---------- TESTS ---------- */
 let quizState=null; // {id, answers:{}, checked:bool}
+function themePassed(theme){const s=U.survey[theme];return !!(s&&s.level==='Понятно')}
+function quizLocked(q){return !themePassed(q.theme)}
 function pgTests(){
   if(quizState){return renderQuiz()}
+  const head=`<div class="page-head"><div><span class="pill">Тесты</span><h1 style="margin-top:10px">Проверка усвоения</h1>
+    <div class="muted">Тест открывается после того, как отметишь тему пройденной в опроснике.</div></div></div>`;
+  if(!TESTS_ENABLED){
+    return head+`<div class="card" style="text-align:center;padding:40px">
+      <div style="font-size:34px">🔒</div><h3 style="margin-top:10px">Тесты скоро откроются</h3>
+      <div class="muted" style="margin-top:6px">Раздел готовится. Пока проходи темы и заполняй опросник — как только тесты включат, они появятся здесь.</div></div>`;
+  }
   let cards=QUIZZES.map(q=>{
     const res=U.tests[q.id];
+    const locked=quizLocked(q);
+    if(locked){
+      return `<div class="card" style="opacity:.7">
+        <div class="row between"><h3>🔒 ${q.icon} ${esc(q.title)}</h3><span class="mini">закрыт</span></div>
+        <div class="muted" style="margin-top:6px">Сначала пройди тему «${esc(q.theme)}» и отметь её «Понятно» в опроснике.</div>
+        <button class="btn ghost sm" style="margin-top:10px" onclick="go('survey')">Открыть опросник</button></div>`;
+    }
     const badge=res?`<span class="tag">✓ ${res.score}/${res.total}</span>`:`<span class="mini">не пройден</span>`;
     return `<div class="card" style="cursor:pointer" onclick="startQuiz('${q.id}')">
       <div class="row between"><h3>${q.icon} ${esc(q.title)}</h3>${badge}</div>
       <div class="muted" style="margin-top:6px">Тема: ${esc(q.theme)} · ${q.items.length} заданий</div></div>`}).join('');
-  return `<div class="page-head"><div><span class="pill">Тесты</span><h1 style="margin-top:10px">Проверка усвоения</h1>
-    <div class="muted">Заголовки, триггеры, язык результата, подболи.</div></div></div>
-    <div class="grid" style="gap:14px">${cards}</div>`;
+  return head+`<div class="grid" style="gap:14px">${cards}</div>`;
 }
-function startQuiz(id){quizState={id,answers:{},checked:false};render()}
+function startQuiz(id){const q=QUIZZES.find(x=>x.id===id);
+  if(!TESTS_ENABLED){return toast('Тесты пока закрыты')}
+  if(q&&quizLocked(q)){return toast('Сначала пройди тему «'+q.theme+'»')}
+  quizState={id,answers:{},checked:false};render()}
 function renderQuiz(){
   const q=QUIZZES.find(x=>x.id===quizState.id);
   const items=q.items.map((it,i)=>{

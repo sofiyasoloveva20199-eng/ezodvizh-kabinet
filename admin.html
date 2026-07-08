@@ -124,11 +124,12 @@ function vPlan(){
 /* ---- CARDS ---- */
 function vCards(){
   const rows=C.cards.map((c,i)=>`<div class="item"><div class="grid2">
-    <div><label>Тип (Пост / Действие / Напутствие)</label><input value="${esc(c.t)}" oninput="C.cards[${i}].t=this.value;touch()"></div>
-    <div style="display:flex;align-items:flex-end"><button class="btn danger sm" onclick="C.cards.splice(${i},1);touch();render()">✕ удалить</button></div></div>
-    <label style="margin-top:8px">Сообщение</label><textarea oninput="C.cards[${i}].m=this.value;touch()">${esc(c.m)}</textarea></div>`).join('');
-  return saveBar()+`<div class="card"><div class="row between"><h3>Карта дня (${C.cards.length} сообщений)</h3>
-    <button class="btn sm" onclick="C.cards.push({t:'Пост',m:''});touch();render()">+ сообщение</button></div><div class="hr"></div>${rows}</div>`;
+    <div><label>Символ (эмодзи)</label><input value="${esc(c.sym)}" oninput="C.cards[${i}].sym=this.value;touch()"></div>
+    <div><label>Название карты</label><input value="${esc(c.name)}" oninput="C.cards[${i}].name=this.value;touch()"></div></div>
+    <label style="margin-top:8px">Послание</label><textarea oninput="C.cards[${i}].m=this.value;touch()">${esc(c.m)}</textarea>
+    <div style="text-align:right;margin-top:6px"><button class="btn danger sm" onclick="C.cards.splice(${i},1);touch();render()">✕ удалить</button></div></div>`).join('');
+  return saveBar()+`<div class="card"><div class="row between"><h3>Карта дня (${C.cards.length} карт)</h3>
+    <button class="btn sm" onclick="C.cards.push({sym:'☾',name:'Новая карта',m:''});touch();render()">+ карта</button></div><div class="hr"></div>${rows}</div>`;
 }
 /* ---- QUIZZES ---- */
 function vQuizzes(){
@@ -146,7 +147,11 @@ function vQuizzes(){
         <button class="btn ghost sm" onclick="addItem(${qi},'open')">+ открытый</button></div>
     </div>`;
   }).join('');
-  return saveBar()+`<div class="row between" style="margin-bottom:8px"><h3>Тесты (${C.quizzes.length})</h3>
+  const en=C.testsEnabled===true;
+  const toggle=`<div class="card"><div class="row between">
+    <div><h3>Доступ учеников к тестам</h3><div class="mini" style="margin-top:4px">${en?'Тесты ОТКРЫТЫ. Каждый тест доступен ученику после того, как он отметит его тему «Понятно» в опроснике.':'Тесты СКРЫТЫ от учеников (в разработке).'}</div></div>
+    <button class="btn ${en?'':'ghost'} sm" onclick="C.testsEnabled=!(${en});touch();render()">${en?'✓ Открыты':'Открыть ученикам'}</button></div></div>`;
+  return saveBar()+toggle+`<div class="row between" style="margin-bottom:8px"><h3>Тесты (${C.quizzes.length})</h3>
     <button class="btn sm" onclick="C.quizzes.push({id:'q'+Date.now(),theme:C.themes[0]||'',title:'Новый тест',icon:'📝',items:[]});touch();render()">+ тест</button></div>${quizzes}`;
 }
 function renderItem(qi,ii,it){
