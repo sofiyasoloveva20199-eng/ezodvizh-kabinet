@@ -69,7 +69,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <script>
 const ADMIN_PASS='ezo-admin'; // ← смени пароль здесь при желании
 const LS_CONTENT='ezo_content_v1', LS_USERS='ezo_users_v1';
-let C=null, tab='themes', student=null;
+let C=null, tab='blocks', student=null;
 
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2000)}
 function esc(s){return (s||'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
@@ -86,17 +86,17 @@ async function loadContent(){
   let c=null;
   try{const o=localStorage.getItem(LS_CONTENT);if(o)c=JSON.parse(o)}catch(e){}
   if(!c){try{const r=await fetch('content.json',{cache:'no-store'});if(r.ok)c=await r.json()}catch(e){}}
-  if(!c)c={themes:[],planGoals:[],planFormats:[],cards:[],quizzes:[],leaderboard:[]};
-  ['themes','planGoals','planFormats','cards','quizzes','leaderboard'].forEach(k=>{if(!Array.isArray(c[k]))c[k]=[]});
+  if(!c)c={themes:[],planGoals:[],planFormats:[],cards:[],quizzes:[],leaderboard:[],blocks:[]};
+  ['themes','planGoals','planFormats','cards','quizzes','leaderboard','blocks'].forEach(k=>{if(!Array.isArray(c[k]))c[k]=[]});
   C=c;
 }
-const TABS=[['themes','Темы'],['cards','Карта дня'],['quizzes','Тесты'],['plan','Опции плана'],['leaderboard','Рейтинг'],['students','Ученики']];
+const TABS=[['blocks','Блоки уроков'],['themes','Темы'],['cards','Карта дня'],['quizzes','Тесты'],['plan','Опции плана'],['leaderboard','Рейтинг'],['students','Ученики']];
 function buildTabs(){document.getElementById('tabs').innerHTML=TABS.map(([id,t])=>`<button class="${id===tab?'on':''}" onclick="tab='${id}';student=null;render()">${t}</button>`).join('')}
 function go(t){tab=t;buildTabs();render()}
 function render(){
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.remove('on'));
   buildTabs();
-  document.getElementById('view').innerHTML=({themes:vThemes,cards:vCards,quizzes:vQuizzes,plan:vPlan,leaderboard:vLeaderboard,students:vStudents}[tab])();
+  document.getElementById('view').innerHTML=({blocks:vBlocks,themes:vThemes,cards:vCards,quizzes:vQuizzes,plan:vPlan,leaderboard:vLeaderboard,students:vStudents}[tab])();
 }
 
 /* ---- shared save bar ---- */
@@ -182,6 +182,39 @@ function itemEdit(qi,ii,k,v){C.quizzes[qi].items[ii][k]=v;touch()}
 function addItem(qi,type){const base={choice:{type:'choice',q:'',opts:['',''],correct:0,exp:''},count:{type:'count',q:'',correct:0,exp:''},open:{type:'open',q:'',sample:''}}[type];
   C.quizzes[qi].items.push(base);touch();render()}
 
+/* ---- BLOCKS ---- */
+function vBlocks(){
+  const blocks=C.blocks.map((b,bi)=>{
+    const exs=(b.exercises||[]).map((ex,ei)=>{
+      const tableF=ex.kind==='table'?`
+        <label style="margin-top:6px">Подпись над таблицей (lead, необязательно)</label><input value="${esc(ex.lead||'')}" oninput="bex(${bi},${ei},'lead',this.value)">
+        <div class="grid2"><div><label>Кол-во строк</label><input type="number" value="${ex.rows||3}" oninput="bex(${bi},${ei},'rows',+this.value)"></div>
+        <div><label>Колонки (по одной в строке)</label><textarea oninput="bex(${bi},${ei},'cols',this.value.split('\\n'))">${esc((ex.cols||['']).join('\n'))}</textarea></div></div>`:'';
+      return `<div class="item"><div class="row between"><span class="mini">Задание #${ei+1}</span>
+        <button class="btn danger sm" onclick="C.blocks[${bi}].exercises.splice(${ei},1);touch();render()">✕</button></div>
+        <label style="margin-top:6px">Заголовок</label><input value="${esc(ex.title)}" oninput="bex(${bi},${ei},'title',this.value)">
+        <label style="margin-top:6px">Тип</label><select onchange="bex(${bi},${ei},'kind',this.value)"><option value="text" ${ex.kind!=='table'?'selected':''}>Текстовый ответ</option><option value="table" ${ex.kind==='table'?'selected':''}>Таблица (рабочая зона)</option></select>
+        <label style="margin-top:6px">Текст / инструкция</label><textarea oninput="bex(${bi},${ei},'text',this.value)">${esc(ex.text||'')}</textarea>${tableF}</div>`;
+    }).join('');
+    return `<div class="card"><div class="grid2">
+      <div><label>Название блока</label><input value="${esc(b.name)}" oninput="C.blocks[${bi}].name=this.value;touch()"></div>
+      <div><label>Иконка (эмодзи)</label><input value="${esc(b.icon)}" oninput="C.blocks[${bi}].icon=this.value;touch()"></div></div>
+      <label style="margin-top:8px;display:flex;align-items:center;gap:8px;color:var(--text)"><input type="checkbox" style="width:auto" ${b.published?'checked':''} onchange="C.blocks[${bi}].published=this.checked;touch();render()"> Опубликован (доступен ученикам)</label>
+      <label style="margin-top:8px">Ссылка на видео-урок</label><input value="${esc(b.video||'')}" oninput="C.blocks[${bi}].video=this.value;touch()">
+      <label style="margin-top:8px">Вступление к уроку</label><textarea oninput="C.blocks[${bi}].intro=this.value;touch()">${esc(b.intro||'')}</textarea>
+      <div class="hr"></div><div class="row between"><b>Задания (${(b.exercises||[]).length})</b>
+        <div class="row"><button class="btn ghost sm" onclick="addBex(${bi},'text')">+ текстовое</button><button class="btn ghost sm" onclick="addBex(${bi},'table')">+ таблица</button></div></div>
+      ${exs}
+      <div style="text-align:right;margin-top:10px"><button class="btn danger sm" onclick="if(confirm('Удалить весь блок?')){C.blocks.splice(${bi},1);touch();render()}">✕ удалить блок</button></div></div>`;
+  }).join('');
+  return saveBar()+`<div class="warn">Блоки открываются ученикам ПО ПОРЯДКУ: следующий доступен, когда ученик отметит предыдущий пройденным. Сними «опубликован» — блок покажется как «Готовится». Не забудь «⬇ Скачать content.json» и залить в репозиторий.</div>
+  <div class="row between" style="margin-bottom:8px"><h3>Блоки курса (${C.blocks.length})</h3>
+    <button class="btn sm" onclick="C.blocks.push({id:'b'+Date.now(),name:'Новый блок',icon:'📦',published:false,video:'',intro:'',exercises:[]});touch();render()">+ блок</button></div>${blocks}`;
+}
+function bex(bi,ei,k,v){C.blocks[bi].exercises[ei][k]=v;touch();if(k==='kind')render()}
+function addBex(bi,kind){const base=kind==='table'?{title:'Новое задание',kind:'table',text:'',lead:'',rows:5,cols:['']}:{title:'Новое задание',kind:'text',text:''};
+  C.blocks[bi].exercises.push(base);touch();render()}
+
 /* ---- LEADERBOARD ---- */
 function vLeaderboard(){
   const rows=C.leaderboard.map((e,i)=>`<div class="item"><div class="grid2">
@@ -232,6 +265,12 @@ function viewStudent(){
   const reels=(d.sales?.reels||[]).slice().reverse().map(r=>`<div class="mini" style="margin-bottom:4px">• 👁 ${(+r.reach).toLocaleString('ru-RU')} — ${esc(r.idea)}${sh(r.shot)}</div>`).join('')||'<div class="mini">—</div>';
   const plan=(d.notebook?.plan||[]).map(p=>`<tr><td>${esc(p.topic)}</td><td>${esc(p.goal)}</td><td>${esc(p.format)}</td><td>${esc(p.emotion)}</td><td>${esc(p.deadline)}</td><td>${p.done?'✓':''}</td></tr>`).join('')||'<tr><td colspan=6 class="mini">—</td></tr>';
   const hw=(d.homework||[]).slice().reverse().map(h=>`<div class="item"><div class="mini">${esc(h.theme)} · ${esc(h.date)} · ${h.sent?'отправлено':'локально'}</div><div style="white-space:pre-wrap;margin-top:4px">${esc(h.text)}</div></div>`).join('')||'<div class="mini">—</div>';
+  const blocksHtml=(C.blocks||[]).map(b=>{const s=(d.blocks||{})[b.id];if(!s)return '';
+    const ans=Object.keys(s.ex||{}).sort((a,z)=>a-z).map(ei=>{const v=s.ex[ei];
+      if(v&&typeof v==='object'){const lead=v.lead?`<div class="mini"><b>${esc(v.lead)}</b></div>`:'';
+        const cells=(v.cells||[]).map(row=>`<div class="mini">— ${(row||[]).map(esc).join(' | ')}</div>`).join('');return `<div style="margin-bottom:6px">${lead}${cells}</div>`}
+      return `<div class="mini" style="white-space:pre-wrap;margin-bottom:6px">${esc(v)}</div>`}).join('');
+    return `<div class="item"><b>${b.icon} ${esc(b.name)}</b> ${s.done?'<span class="pill">пройден</span>':''}<div style="margin-top:6px">${ans||'<span class="mini">нет ответов</span>'}</div></div>`}).join('')||'<div class="mini">—</div>';
   const total=(d.sales?.entries||[]).reduce((s,e)=>s+ +e.amount,0);
   return `<button class="btn ghost sm" onclick="student=null;imported=null;render()">← назад к списку</button>
   <div class="card" style="margin-top:12px"><h1 style="font-size:24px">${esc(d.name||student)} ${student==='__import__'?'<span class="pill">импорт</span>':''}</h1>
@@ -244,6 +283,7 @@ function viewStudent(){
   <div class="card"><h3>💰 Продажи</h3><div class="hr"></div>${sales}<div class="hr"></div><h3 style="font-size:15px">Залетевшие рилс</h3>${reels}</div>
   <div class="card"><h3>📓 Тетрадь</h3><div class="hr"></div><div class="mini" style="white-space:pre-wrap">${esc(d.notebook?.notes||'—')}</div>
     <div class="hr"></div><div style="overflow-x:auto"><table><tr><th>Тема</th><th>Цель</th><th>Формат</th><th>Эмоция</th><th>Дедлайн</th><th>✓</th></tr>${plan}</table></div></div>
+  <div class="card"><h3>📚 Блоки и задания</h3><div class="hr"></div>${blocksHtml}</div>
   <div class="card"><h3>📮 Домашки</h3><div class="hr"></div>${hw}</div>`;
 }
 </script>

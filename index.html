@@ -183,7 +183,7 @@ let USERNAME=null;
 function persist(){const u=store.users();u[USERNAME]=U;if(!store.saveUsers(u))toast('Не хватило места в браузере — попробуй скрин поменьше')}
 function blankData(name){return{
   name:name||'',created:new Date().toISOString().slice(0,10),
-  survey:{}, tests:{}, sales:{entries:[],reels:[]},
+  survey:{}, tests:{}, blocks:{}, sales:{entries:[],reels:[]},
   notebook:{notes:'',plan:[]}, homework:[],
   calls:{total:8,done:0,next:''}, card:{date:'',idx:0}, settings:{webhook:''}
 }}
@@ -264,6 +264,7 @@ let QUIZZES=[
 let PLAN_GOALS=['Продажа','Прогрев к личности','Экспертность','Прогрев к продукту','Охват'];
 let PLAN_FORMATS=['Рилс','Сторис','Пост','Карусель','Бесплатник'];
 let LEADERBOARD=[]; // [{name, earned, reels}] — общий рейтинг, ведёт преподаватель в админке
+let BLOCKS=[]; // блоки курса
 
 /* Load content overrides: admin preview (localStorage) → content.json → built-in defaults */
 async function loadContent(){
@@ -278,6 +279,7 @@ async function loadContent(){
     if(Array.isArray(c.planFormats)&&c.planFormats.length)PLAN_FORMATS=c.planFormats;
     if(typeof c.testsEnabled==='boolean')TESTS_ENABLED=c.testsEnabled;
     if(Array.isArray(c.leaderboard))LEADERBOARD=c.leaderboard;
+    if(Array.isArray(c.blocks)&&c.blocks.length)BLOCKS=c.blocks;
   }
 }
 function buildBoard(){
@@ -324,6 +326,7 @@ function logout(){store.setSession(null);location.reload()}
 /* ================= APP BOOT ================= */
 const NAV=[
  {id:'home',ic:'☾',t:'Главная страница'},
+ {id:'blocks',ic:'📚',t:'Обучение'},
  {id:'tests',ic:'📝',t:'Тесты'},
  {id:'survey',ic:'✅',t:'Опросник тем'},
  {id:'sales',ic:'💰',t:'Мои продажи'},
@@ -346,7 +349,7 @@ function boot(){
     a.onclick=()=>go(n.id);a.dataset.id=n.id;nav.appendChild(a)});
   go('home');
 }
-function go(p){page=p;
+function go(p){page=p;openB=null;
   document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===p));
   document.getElementById('side').classList.remove('open');
   render();window.scrollTo(0,0);
@@ -385,7 +388,7 @@ function today(){return new Date().toISOString().slice(0,10)}
 /* ================= RENDER ROUTER ================= */
 function render(){
   const m=document.getElementById('main');
-  m.innerHTML=({home:pgHome,tests:pgTests,survey:pgSurvey,sales:pgSales,notebook:pgNotebook,homework:pgHomework,settings:pgSettings}[page])();
+  m.innerHTML=({home:pgHome,blocks:pgBlocks,tests:pgTests,survey:pgSurvey,sales:pgSales,notebook:pgNotebook,homework:pgHomework,settings:pgSettings}[page])();
   if(afterRender[page])afterRender[page]();
 }
 const afterRender={};
@@ -443,6 +446,68 @@ function pgHome(){
   </div>`;
 }
 function drawCard(){U.card.idx=Math.floor(Math.random()*CARD_MSGS.length);U.card.date=today();persist();render()}
+
+/* ---------- BLOCKS (Обучение) ---------- */
+let openB=null;
+function blockState(id){if(!U.blocks[id])U.blocks[id]={done:false,ex:{}};return U.blocks[id]}
+function blockAccessible(i){const b=BLOCKS[i];if(!b||!b.published)return false;if(i===0)return true;const p=BLOCKS[i-1];return !!(U.blocks[p.id]&&U.blocks[p.id].done)}
+function pgBlocks(){
+  if(openB!==null&&BLOCKS[openB])return renderBlock(openB);
+  const head=`<div class="page-head"><div><span class="pill">Обучение</span><h1 style="margin-top:10px">Блоки курса</h1>
+    <div class="muted">Проходи по порядку — следующий блок открывается, когда отметишь предыдущий пройденным.</div></div></div>`;
+  if(!BLOCKS.length)return head+`<div class="card">Блоки готовятся.</div>`;
+  const cards=BLOCKS.map((b,i)=>{
+    const acc=blockAccessible(i);const st=blockState(b.id);
+    if(!b.published){
+      return `<div class="card" style="opacity:.6"><div class="row between"><h3>${b.icon} ${esc(b.name)}</h3><span class="mini">⏳ Готовится</span></div></div>`;
+    }
+    if(acc){
+      const badge=st.done?'<span class="tag">✓ пройден</span>':'<span class="mini">открыт</span>';
+      return `<div class="card" style="cursor:pointer" onclick="openB=${i};render()"><div class="row between"><h3>${b.icon} ${esc(b.name)}</h3>${badge}</div>
+        <div class="muted" style="margin-top:6px">${(b.exercises||[]).length} заданий · нажми, чтобы открыть</div></div>`;
+    }
+    return `<div class="card" style="opacity:.7"><div class="row between"><h3>🔒 ${b.icon} ${esc(b.name)}</h3><span class="mini">закрыт</span></div>
+      <div class="muted" style="margin-top:6px">Откроется, когда пройдёшь предыдущий блок.</div></div>`;
+  }).join('');
+  return head+`<div class="grid" style="gap:14px">${cards}</div>`;
+}
+function renderBlock(i){
+  const b=BLOCKS[i];const st=blockState(b.id);
+  const vid=b.video?`<a class="btn" href="${esc(b.video)}" target="_blank" rel="noopener">▶ Смотреть урок</a>`:`<div class="mini">Видео-урок скоро появится здесь.</div>`;
+  const exs=(b.exercises||[]).map((ex,ei)=>renderExercise(b.id,ei,ex,st.ex[ei])).join('');
+  return `<button class="btn ghost sm" onclick="openB=null;render()">← к блокам</button>
+    <div class="page-head" style="margin-top:12px"><div><span class="pill">${esc(b.name)}</span><h1 style="margin-top:10px">${b.icon} Урок и задания</h1></div></div>
+    <div class="card"><h3>🎬 Урок</h3><div class="hr"></div><div class="muted" style="white-space:pre-wrap">${esc(b.intro||'')}</div><div style="margin-top:12px">${vid}</div></div>
+    ${exs}
+    <div class="card" style="text-align:center">
+      ${st.done?'<div class="pill">✓ Блок пройден</div><div class="mini" style="margin-top:8px">Следующий блок открыт (если опубликован).</div>'
+        :'<button class="btn" onclick="completeBlock('+i+')">Отметить блок пройденным</button><div class="mini" style="margin-top:8px">Выполни задания и отметь блок — откроется следующий.</div>'}
+    </div>`;
+}
+function renderExercise(bId,ei,ex,ans){
+  let body='';
+  if(ex.kind==='table'){
+    const st=(ans&&typeof ans==='object')?ans:{lead:'',cells:[]};const cells=st.cells||[];
+    const lead=ex.lead?`<label style="margin-top:8px">${esc(ex.lead)}</label><input value="${esc(st.lead||'')}" oninput="saveLead('${bId}',${ei},this.value)">`:'';
+    const cols=ex.cols&&ex.cols.length?ex.cols:[''];
+    const head=cols.map(c=>`<th>${esc(c)}</th>`).join('');
+    let rowsH='';
+    for(let r=0;r<(ex.rows||3);r++){
+      const tds=cols.map((c,ci)=>`<td><textarea style="min-height:44px" oninput="saveCell('${bId}',${ei},${r},${ci},this.value)">${esc((cells[r]&&cells[r][ci])||'')}</textarea></td>`).join('');
+      rowsH+=`<tr><td class="mini" style="width:24px">${r+1}</td>${tds}</tr>`;
+    }
+    body=`${lead}<div style="overflow-x:auto;margin-top:10px"><table><tr><th></th>${head}</tr>${rowsH}</table></div>`;
+  }else{
+    body=`<textarea style="min-height:110px;margin-top:10px" placeholder="Твой ответ..." oninput="saveEx('${bId}',${ei},this.value)">${esc(ans||'')}</textarea>`;
+  }
+  return `<div class="card"><h3 style="font-size:17px">${esc(ex.title)}</h3>
+    ${ex.text?`<div class="muted" style="margin-top:8px;white-space:pre-wrap">${esc(ex.text)}</div>`:''}${body}</div>`;
+}
+function saveEx(bId,ei,v){blockState(bId).ex[ei]=v;persist()}
+function saveLead(bId,ei,v){const s=blockState(bId);if(!s.ex[ei]||typeof s.ex[ei]!=='object')s.ex[ei]={lead:'',cells:[]};s.ex[ei].lead=v;persist()}
+function saveCell(bId,ei,r,c,v){const s=blockState(bId);if(!s.ex[ei]||typeof s.ex[ei]!=='object')s.ex[ei]={lead:'',cells:[]};if(!s.ex[ei].cells)s.ex[ei].cells=[];if(!s.ex[ei].cells[r])s.ex[ei].cells[r]=[];s.ex[ei].cells[r][c]=v;persist()}
+function completeBlock(i){const b=BLOCKS[i];const s=blockState(b.id);s.done=true;
+  U.survey[b.name]={level:'Понятно',note:(U.survey[b.name]&&U.survey[b.name].note)||''};persist();toast('Блок пройден ✓');openB=null;render()}
 
 /* ---------- TESTS ---------- */
 let quizState=null; // {id, answers:{}, checked:bool}
