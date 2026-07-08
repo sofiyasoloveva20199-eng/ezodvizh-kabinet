@@ -330,10 +330,8 @@ const NAV=[
  {id:'home',ic:'☾',t:'Главная страница'},
  {id:'blocks',ic:'📚',t:'Обучение'},
  {id:'tests',ic:'📝',t:'Тесты'},
- {id:'survey',ic:'✅',t:'Опросник тем'},
  {id:'sales',ic:'💰',t:'Мои продажи'},
  {id:'notebook',ic:'📓',t:'Рабочая тетрадь'},
- {id:'homework',ic:'📮',t:'Домашка'},
  {id:'settings',ic:'⚙️',t:'Настройки'}
 ];
 let page='home';
@@ -390,7 +388,7 @@ function today(){return new Date().toISOString().slice(0,10)}
 /* ================= RENDER ROUTER ================= */
 function render(){
   const m=document.getElementById('main');
-  m.innerHTML=({home:pgHome,blocks:pgBlocks,tests:pgTests,survey:pgSurvey,sales:pgSales,notebook:pgNotebook,homework:pgHomework,settings:pgSettings}[page])();
+  m.innerHTML=({home:pgHome,blocks:pgBlocks,tests:pgTests,survey:pgSurvey,sales:pgSales,notebook:pgNotebook,settings:pgSettings}[page])();
   if(afterRender[page])afterRender[page]();
 }
 const afterRender={};
@@ -439,10 +437,9 @@ function pgHome(){
       <h3>Что дальше?</h3>
       <div class="hr"></div>
       <div class="row" style="flex-direction:column;align-items:stretch;gap:10px">
-        <button class="btn ghost" onclick="go('tests')">📝 Пройти тест по теме</button>
+        <button class="btn ghost" onclick="go('blocks')">📚 Продолжить обучение</button>
         <button class="btn ghost" onclick="go('notebook')">📓 Заполнить контент-план</button>
         <button class="btn ghost" onclick="go('sales')">💰 Внести продажу / залетевший рилс</button>
-        <button class="btn ghost" onclick="go('homework')">📮 Отправить домашку</button>
       </div>
     </div>
   </div>`;
@@ -475,11 +472,10 @@ function pgBlocks(){
 }
 function renderBlock(i){
   const b=BLOCKS[i];const st=blockState(b.id);
-  const vid=b.video?`<a class="btn" href="${esc(b.video)}" target="_blank" rel="noopener">▶ Смотреть урок</a>`:`<div class="mini">Видео-урок скоро появится здесь.</div>`;
   const exs=(b.exercises||[]).map((ex,ei)=>renderExercise(b.id,ei,ex,st.ex[ei])).join('');
   return `<button class="btn ghost sm" onclick="openB=null;render()">← к блокам</button>
-    <div class="page-head" style="margin-top:12px"><div><span class="pill">${esc(b.name)}</span><h1 style="margin-top:10px">${b.icon} Урок и задания</h1></div></div>
-    <div class="card"><h3>🎬 Урок</h3><div class="hr"></div><div class="muted" style="white-space:pre-wrap">${esc(b.intro||'')}</div><div style="margin-top:12px">${vid}</div></div>
+    <div class="page-head" style="margin-top:12px"><div><span class="pill">${esc(b.name)}</span><h1 style="margin-top:10px">${b.icon} Задания</h1></div></div>
+    ${b.intro?`<div class="card"><div class="muted" style="white-space:pre-wrap">${esc(b.intro)}</div></div>`:''}
     ${exs}
     <div class="card" style="text-align:center">
       ${st.done?'<div class="pill">✓ Блок пройден</div><div class="mini" style="margin-top:8px">Следующий блок открыт (если опубликован).</div>'
@@ -493,12 +489,14 @@ function renderExercise(bId,ei,ex,ans){
     const lead=ex.lead?`<label style="margin-top:8px">${esc(ex.lead)}</label><input value="${esc(st.lead||'')}" oninput="saveLead('${bId}',${ei},this.value)">`:'';
     const cols=ex.cols&&ex.cols.length?ex.cols:[''];
     const head=cols.map(c=>`<th>${esc(c)}</th>`).join('');
+    const rowsCount=Math.max(ex.rows||1,cells.length);
     let rowsH='';
-    for(let r=0;r<(ex.rows||3);r++){
-      const tds=cols.map((c,ci)=>`<td><textarea style="min-height:44px" oninput="saveCell('${bId}',${ei},${r},${ci},this.value)">${esc((cells[r]&&cells[r][ci])||'')}</textarea></td>`).join('');
+    for(let r=0;r<rowsCount;r++){
+      const tds=cols.map((c,ci)=>`<td><textarea style="min-height:46px;min-width:150px" oninput="saveCell('${bId}',${ei},${r},${ci},this.value)">${esc((cells[r]&&cells[r][ci])||'')}</textarea></td>`).join('');
       rowsH+=`<tr><td class="mini" style="width:24px">${r+1}</td>${tds}</tr>`;
     }
-    body=`${lead}<div style="overflow-x:auto;margin-top:10px"><table><tr><th></th>${head}</tr>${rowsH}</table></div>`;
+    body=`${lead}<div style="overflow-x:auto;margin-top:10px"><table><tr><th></th>${head}</tr>${rowsH}</table></div>
+      <button class="btn ghost sm" style="margin-top:10px" onclick="addRow('${bId}',${ei})">+ строка</button>`;
   }else{
     body=`<textarea style="min-height:110px;margin-top:10px" placeholder="Твой ответ..." oninput="saveEx('${bId}',${ei},this.value)">${esc(ans||'')}</textarea>`;
   }
@@ -508,6 +506,7 @@ function renderExercise(bId,ei,ex,ans){
 function saveEx(bId,ei,v){blockState(bId).ex[ei]=v;persist()}
 function saveLead(bId,ei,v){const s=blockState(bId);if(!s.ex[ei]||typeof s.ex[ei]!=='object')s.ex[ei]={lead:'',cells:[]};s.ex[ei].lead=v;persist()}
 function saveCell(bId,ei,r,c,v){const s=blockState(bId);if(!s.ex[ei]||typeof s.ex[ei]!=='object')s.ex[ei]={lead:'',cells:[]};if(!s.ex[ei].cells)s.ex[ei].cells=[];if(!s.ex[ei].cells[r])s.ex[ei].cells[r]=[];s.ex[ei].cells[r][c]=v;persist()}
+function addRow(bId,ei){const s=blockState(bId);if(!s.ex[ei]||typeof s.ex[ei]!=='object')s.ex[ei]={lead:'',cells:[]};if(!s.ex[ei].cells)s.ex[ei].cells=[];s.ex[ei].cells.push([]);persist();render()}
 function completeBlock(i){const b=BLOCKS[i];const s=blockState(b.id);s.done=true;
   U.survey[b.name]={level:'Понятно',note:(U.survey[b.name]&&U.survey[b.name].note)||''};persist();toast('Блок пройден ✓');openB=null;render()}
 
@@ -530,8 +529,8 @@ function pgTests(){
     if(locked){
       return `<div class="card" style="opacity:.7">
         <div class="row between"><h3>🔒 ${q.icon} ${esc(q.title)}</h3><span class="mini">закрыт</span></div>
-        <div class="muted" style="margin-top:6px">Сначала пройди тему «${esc(q.theme)}» и отметь её «Понятно» в опроснике.</div>
-        <button class="btn ghost sm" style="margin-top:10px" onclick="go('survey')">Открыть опросник</button></div>`;
+        <div class="muted" style="margin-top:6px">Сначала пройди «${esc(q.theme)}» в разделе «Обучение».</div>
+        <button class="btn ghost sm" style="margin-top:10px" onclick="go('blocks')">К обучению</button></div>`;
     }
     const badge=res?`<span class="tag">✓ ${res.score}/${res.total}</span>`:`<span class="mini">не пройден</span>`;
     return `<div class="card" style="cursor:pointer" onclick="startQuiz('${q.id}')">

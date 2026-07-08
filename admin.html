@@ -200,8 +200,7 @@ function vBlocks(){
       <div><label>Название блока</label><input value="${esc(b.name)}" oninput="C.blocks[${bi}].name=this.value;touch()"></div>
       <div><label>Иконка (эмодзи)</label><input value="${esc(b.icon)}" oninput="C.blocks[${bi}].icon=this.value;touch()"></div></div>
       <label style="margin-top:8px;display:flex;align-items:center;gap:8px;color:var(--text)"><input type="checkbox" style="width:auto" ${b.published?'checked':''} onchange="C.blocks[${bi}].published=this.checked;touch();render()"> Опубликован (доступен ученикам)</label>
-      <label style="margin-top:8px">Ссылка на видео-урок</label><input value="${esc(b.video||'')}" oninput="C.blocks[${bi}].video=this.value;touch()">
-      <label style="margin-top:8px">Вступление к уроку</label><textarea oninput="C.blocks[${bi}].intro=this.value;touch()">${esc(b.intro||'')}</textarea>
+      <label style="margin-top:8px">Вступление / инструкция к блоку</label><textarea oninput="C.blocks[${bi}].intro=this.value;touch()">${esc(b.intro||'')}</textarea>
       <div class="hr"></div><div class="row between"><b>Задания (${(b.exercises||[]).length})</b>
         <div class="row"><button class="btn ghost sm" onclick="addBex(${bi},'text')">+ текстовое</button><button class="btn ghost sm" onclick="addBex(${bi},'table')">+ таблица</button></div></div>
       ${exs}
