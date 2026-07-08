@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ЭзоДвиж · Админка</title>
+<style>
+:root{--bg:#0b0910;--bg2:#0f0c16;--panel:#15111f;--panel2:#1b1626;--text:#ece9f5;--muted:#9a92b4;--faint:#6f6790;
+  --accent:#a855f7;--accent2:#7c3aed;--accent-soft:rgba(168,85,247,.14);--border:rgba(168,85,247,.18);--border2:rgba(255,255,255,.06);
+  --good:#5ee6a8;--bad:#f0736a;--serif:'Cormorant Garamond','Georgia',serif;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:radial-gradient(1200px 800px at 80% -10%,#1a1030 0,var(--bg) 55%) fixed,var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.55;min-height:100vh}
+h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:.5px;margin:0}h1{font-size:32px}h3{font-size:18px}
+.muted{color:var(--muted)}.mini{font-size:12px;color:var(--faint)}
+button{font-family:var(--sans);cursor:pointer;border:none}
+input,textarea,select{font-family:var(--sans);font-size:14px;color:var(--text);background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:9px 11px;width:100%;outline:none}
+textarea{resize:vertical;min-height:60px}
+label{display:block;font-size:11px;color:var(--muted);margin:0 0 4px 2px;letter-spacing:.3px}
+.btn{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;padding:10px 18px;border-radius:11px;font-weight:600;font-size:14px;box-shadow:0 6px 20px rgba(124,58,237,.25)}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);box-shadow:none}
+.btn.sm{padding:6px 12px;font-size:13px;border-radius:8px}
+.btn.danger{background:transparent;border:1px solid var(--bad);color:var(--bad);box-shadow:none}
+.card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--border2);border-radius:16px;padding:20px;margin-bottom:16px}
+.pill{display:inline-block;font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);border:1px solid var(--border);border-radius:100px;padding:4px 11px}
+.hide{display:none!important}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}
+.hr{height:1px;background:var(--border2);margin:14px 0}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.tabs button{background:transparent;color:var(--muted);padding:9px 16px;border-radius:10px;border:1px solid transparent;font-size:14px}
+.tabs button.on{color:var(--text);background:var(--accent-soft);border-color:var(--border)}
+.item{border:1px solid var(--border2);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--panel2)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel);border:1px solid var(--accent);padding:12px 20px;border-radius:12px;transition:.3s;z-index:60}
+.toast.show{transform:translateX(-50%) translateY(0)}
+#gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+#gate .card{max-width:380px;width:100%;text-align:center;margin:0}
+.wrap{max-width:960px;margin:0 auto;padding:30px 24px 80px}
+.warn{background:rgba(240,192,90,.1);border:1px solid rgba(240,192,90,.3);border-radius:12px;padding:12px 14px;font-size:13px;color:#f0c05a}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--border2);vertical-align:top}th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="card">
+    <div style="font-size:22px;filter:drop-shadow(0 0 8px rgba(168,85,247,.6))">☾</div>
+    <h1 style="font-size:26px;letter-spacing:2px;margin-top:6px">Админка</h1>
+    <div class="mini" style="letter-spacing:2px;text-transform:uppercase">ЭзоДвиж</div>
+    <div style="text-align:left;margin:18px 0 8px"><label>Пароль</label><input id="gp" type="password" onkeydown="if(event.key==='Enter')gate()"></div>
+    <div class="mini" id="gerr" style="color:var(--bad);min-height:16px"></div>
+    <button class="btn" style="width:100%" onclick="gate()">Войти</button>
+  </div>
+</div>
+
+<div id="admin" class="hide"><div class="wrap">
+  <div class="row between">
+    <div><span class="pill">Админ-панель</span><h1 style="margin-top:8px">Управление кабинетом</h1></div>
+    <a href="index.html" class="btn ghost sm">← К кабинету</a>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="view"></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ADMIN_PASS='ezo-admin'; // ← смени пароль здесь при желании
+const LS_CONTENT='ezo_content_v1', LS_USERS='ezo_users_v1';
+let C=null, tab='themes', student=null;
+
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2000)}
+function esc(s){return (s||'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function touch(){localStorage.setItem(LS_CONTENT,JSON.stringify(C))}
+
+async function gate(){
+  if(document.getElementById('gp').value!==ADMIN_PASS){document.getElementById('gerr').textContent='Неверный пароль';return}
+  document.getElementById('gate').classList.add('hide');
+  document.getElementById('admin').classList.remove('hide');
+  await loadContent(); buildTabs(); render();
+}
+async function loadContent(){
+  let c=null;
+  try{const o=localStorage.getItem(LS_CONTENT);if(o)c=JSON.parse(o)}catch(e){}
+  if(!c){try{const r=await fetch('content.json',{cache:'no-store'});if(r.ok)c=await r.json()}catch(e){}}
+  if(!c)c={themes:[],planGoals:[],planFormats:[],cards:[],quizzes:[]};
+  ['themes','planGoals','planFormats','cards','quizzes'].forEach(k=>{if(!Array.isArray(c[k]))c[k]=[]});
+  C=c;
+}
+const TABS=[['themes','Темы'],['cards','Карта дня'],['quizzes','Тесты'],['plan','Опции плана'],['students','Ученики']];
+function buildTabs(){document.getElementById('tabs').innerHTML=TABS.map(([id,t])=>`<button class="${id===tab?'on':''}" onclick="tab='${id}';student=null;render()">${t}</button>`).join('')}
+function go(t){tab=t;buildTabs();render()}
+function render(){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.remove('on'));
+  buildTabs();
+  document.getElementById('view').innerHTML=({themes:vThemes,cards:vCards,quizzes:vQuizzes,plan:vPlan,students:vStudents}[tab])();
+}
+
+/* ---- shared save bar ---- */
+function saveBar(){return `<div class="card"><div class="row between">
+  <div class="mini">Черновик сохраняется автоматически и виден в кабинете на этом устройстве.<br>Чтобы изменения увидели ВСЕ ученики — скачай <b>content.json</b> и залей в репозиторий (замени файл).</div>
+  <div class="row"><button class="btn" onclick="downloadContent()">⬇ Скачать content.json</button>
+  <button class="btn ghost" onclick="resetContent()">Сбросить к серверной версии</button></div></div></div>`}
+function downloadContent(){const blob=new Blob([JSON.stringify(C,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='content.json';a.click();toast('Скачано — залей в репозиторий')}
+async function resetContent(){localStorage.removeItem(LS_CONTENT);await loadContent();toast('Сброшено к серверной версии');render()}
+
+/* ---- THEMES ---- */
+function vThemes(){
+  const rows=C.themes.map((t,i)=>`<div class="row" style="margin-bottom:8px"><input value="${esc(t)}" oninput="C.themes[${i}]=this.value;touch()">
+    <button class="btn danger sm" onclick="C.themes.splice(${i},1);touch();render()">✕</button></div>`).join('');
+  return saveBar()+`<div class="card"><div class="row between"><h3>Темы курса (${C.themes.length})</h3>
+    <button class="btn sm" onclick="C.themes.push('Новая тема');touch();render()">+ тема</button></div><div class="hr"></div>${rows}</div>`;
+}
+/* ---- PLAN OPTIONS ---- */
+function vPlan(){
+  const list=(arr,key)=>C[key].map((x,i)=>`<div class="row" style="margin-bottom:8px"><input value="${esc(x)}" oninput="C.${key}[${i}]=this.value;touch()">
+    <button class="btn danger sm" onclick="C.${key}.splice(${i},1);touch();render()">✕</button></div>`).join('');
+  return saveBar()+`<div class="card"><div class="row between"><h3>Цели контента</h3>
+    <button class="btn sm" onclick="C.planGoals.push('Новая цель');touch();render()">+ цель</button></div><div class="hr"></div>${list(C.planGoals,'planGoals')}</div>
+  <div class="card"><div class="row between"><h3>Форматы</h3>
+    <button class="btn sm" onclick="C.planFormats.push('Новый формат');touch();render()">+ формат</button></div><div class="hr"></div>${list(C.planFormats,'planFormats')}</div>`;
+}
+/* ---- CARDS ---- */
+function vCards(){
+  const rows=C.cards.map((c,i)=>`<div class="item"><div class="grid2">
+    <div><label>Тип (Пост / Действие / Напутствие)</label><input value="${esc(c.t)}" oninput="C.cards[${i}].t=this.value;touch()"></div>
+    <div style="display:flex;align-items:flex-end"><button class="btn danger sm" onclick="C.cards.splice(${i},1);touch();render()">✕ удалить</button></div></div>
+    <label style="margin-top:8px">Сообщение</label><textarea oninput="C.cards[${i}].m=this.value;touch()">${esc(c.m)}</textarea></div>`).join('');
+  return saveBar()+`<div class="card"><div class="row between"><h3>Карта дня (${C.cards.length} сообщений)</h3>
+    <button class="btn sm" onclick="C.cards.push({t:'Пост',m:''});touch();render()">+ сообщение</button></div><div class="hr"></div>${rows}</div>`;
+}
+/* ---- QUIZZES ---- */
+function vQuizzes(){
+  const quizzes=C.quizzes.map((q,qi)=>{
+    const items=q.items.map((it,ii)=>renderItem(qi,ii,it)).join('');
+    return `<div class="card"><div class="grid2">
+      <div><label>Название теста</label><input value="${esc(q.title)}" oninput="C.quizzes[${qi}].title=this.value;touch()"></div>
+      <div><label>Иконка (эмодзи)</label><input value="${esc(q.icon)}" oninput="C.quizzes[${qi}].icon=this.value;touch()"></div></div>
+      <div class="grid2" style="margin-top:8px"><div><label>Тема</label><input value="${esc(q.theme)}" oninput="C.quizzes[${qi}].theme=this.value;touch()"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn danger sm" onclick="if(confirm('Удалить весь тест?')){C.quizzes.splice(${qi},1);touch();render()}">✕ удалить тест</button></div></div>
+      <div class="hr"></div><div class="mini" style="margin-bottom:8px">Вопросы (${q.items.length})</div>${items}
+      <div class="row" style="margin-top:8px">
+        <button class="btn ghost sm" onclick="addItem(${qi},'choice')">+ выбор</button>
+        <button class="btn ghost sm" onclick="addItem(${qi},'count')">+ счёт триггеров</button>
+        <button class="btn ghost sm" onclick="addItem(${qi},'open')">+ открытый</button></div>
+    </div>`;
+  }).join('');
+  return saveBar()+`<div class="row between" style="margin-bottom:8px"><h3>Тесты (${C.quizzes.length})</h3>
+    <button class="btn sm" onclick="C.quizzes.push({id:'q'+Date.now(),theme:C.themes[0]||'',title:'Новый тест',icon:'📝',items:[]});touch();render()">+ тест</button></div>${quizzes}`;
+}
+function renderItem(qi,ii,it){
+  const del=`<button class="btn danger sm" onclick="C.quizzes[${qi}].items.splice(${ii},1);touch();render()">✕</button>`;
+  const head=`<div class="row between"><span class="mini">#${ii+1} · ${it.type==='choice'?'выбор':it.type==='count'?'счёт триггеров':'открытый'}</span>${del}</div>`;
+  let body='';
+  if(it.type==='choice'){
+    body=`<label style="margin-top:6px">Вопрос</label><input value="${esc(it.q)}" oninput="itemEdit(${qi},${ii},'q',this.value)">
+    <label style="margin-top:6px">Варианты (по одному в строке)</label>
+    <textarea oninput="itemEdit(${qi},${ii},'opts',this.value.split('\\n'))">${esc((it.opts||[]).join('\n'))}</textarea>
+    <div class="grid2" style="margin-top:6px"><div><label>Номер правильного (с 1)</label>
+      <input type="number" min="1" value="${(it.correct??0)+1}" oninput="itemEdit(${qi},${ii},'correct',Math.max(0,(+this.value||1)-1))"></div>
+    <div><label>Пояснение</label><input value="${esc(it.exp)}" oninput="itemEdit(${qi},${ii},'exp',this.value)"></div></div>`;
+  }else if(it.type==='count'){
+    body=`<label style="margin-top:6px">Вопрос / текст</label><textarea oninput="itemEdit(${qi},${ii},'q',this.value)">${esc(it.q)}</textarea>
+    <div class="grid2" style="margin-top:6px"><div><label>Правильное число</label><input type="number" value="${it.correct??0}" oninput="itemEdit(${qi},${ii},'correct',+this.value)"></div>
+    <div><label>Пояснение</label><input value="${esc(it.exp)}" oninput="itemEdit(${qi},${ii},'exp',this.value)"></div></div>`;
+  }else{
+    body=`<label style="margin-top:6px">Вопрос / задание</label><textarea oninput="itemEdit(${qi},${ii},'q',this.value)">${esc(it.q)}</textarea>
+    <label style="margin-top:6px">Пример-эталон</label><textarea oninput="itemEdit(${qi},${ii},'sample',this.value)">${esc(it.sample)}</textarea>`;
+  }
+  return `<div class="item">${head}${body}</div>`;
+}
+function itemEdit(qi,ii,k,v){C.quizzes[qi].items[ii][k]=v;touch()}
+function addItem(qi,type){const base={choice:{type:'choice',q:'',opts:['',''],correct:0,exp:''},count:{type:'count',q:'',correct:0,exp:''},open:{type:'open',q:'',sample:''}}[type];
+  C.quizzes[qi].items.push(base);touch();render()}
+
+/* ---- STUDENTS ---- */
+function getUsers(){try{return JSON.parse(localStorage.getItem(LS_USERS))||{}}catch(e){return {}}}
+function pct(d){if(!d||!d.survey)return 0;const done=Object.values(d.survey).filter(v=>v&&v.level==='Понятно').length;return Math.round(done/(C.themes.length||1)*100)}
+function vStudents(){
+  if(student)return viewStudent();
+  const users=getUsers();const keys=Object.keys(users);
+  const rows=keys.map(u=>{const d=users[u].data||{};
+    return `<tr><td><b>${esc(d.name||u)}</b><div class="mini">@${esc(u)}</div></td>
+      <td>${pct(d)}%</td><td>${Object.keys(d.tests||{}).length}</td>
+      <td>${(d.sales?.entries||[]).reduce((s,e)=>s+ +e.amount,0).toLocaleString('ru-RU')} ₽</td>
+      <td>${(d.homework||[]).length}</td>
+      <td><button class="btn sm" onclick="student=${JSON.stringify(u)};render()">Открыть</button></td></tr>`}).join('')
+    ||'<tr><td colspan="6" class="mini">На этом устройстве нет аккаунтов учеников.</td></tr>';
+  return `<div class="warn">⚠ Данные учеников хранятся в браузере каждого ученика. Здесь видны только аккаунты, созданные на этом устройстве, и импортированные бэкапы. Для сбора со всех — нужен Telegram-бот/сервер (следующий шаг).</div>
+  <div class="card"><div class="row between"><h3>Ученики на этом устройстве</h3>
+    <label class="btn ghost sm" style="width:auto">⬆ Импорт бэкапа ученика<input type="file" accept="application/json" style="display:none" onchange="importStudent(this)"></label></div>
+    <div class="hr"></div><div style="overflow-x:auto"><table>
+    <tr><th>Ученик</th><th>Темы</th><th>Тесты</th><th>Продажи</th><th>Домашки</th><th></th></tr>${rows}</table></div></div>`;
+}
+let imported=null;
+function importStudent(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{imported=JSON.parse(r.result);student='__import__';render()}catch(e){toast('Не удалось прочитать файл')}};r.readAsText(f)}
+function viewStudent(){
+  let d;if(student==='__import__')d=imported;else d=(getUsers()[student]||{}).data;
+  if(!d)return `<button class="btn ghost sm" onclick="student=null;render()">← назад</button><div class="card">Нет данных.</div>`;
+  const tests=Object.entries(d.tests||{}).map(([k,v])=>`<div class="mini">• ${esc(k)}: ${v.score}/${v.total} (${esc(v.date)})</div>`).join('')||'<div class="mini">—</div>';
+  const survey=(C.themes).map(t=>{const s=(d.survey||{})[t]||{};return `<tr><td>${esc(t)}</td><td>${esc(s.level||'—')}</td><td class="mini">${esc(s.note||'')}</td></tr>`}).join('');
+  const sales=(d.sales?.entries||[]).slice().reverse().map(e=>`<div class="mini">• ${(+e.amount).toLocaleString('ru-RU')} ₽ — ${esc(e.note)} (${esc(e.date)})</div>`).join('')||'<div class="mini">—</div>';
+  const reels=(d.sales?.reels||[]).slice().reverse().map(r=>`<div class="mini">• 👁 ${(+r.reach).toLocaleString('ru-RU')} — ${esc(r.idea)}</div>`).join('')||'<div class="mini">—</div>';
+  const plan=(d.notebook?.plan||[]).map(p=>`<tr><td>${esc(p.topic)}</td><td>${esc(p.goal)}</td><td>${esc(p.format)}</td><td>${esc(p.emotion)}</td><td>${esc(p.deadline)}</td><td>${p.done?'✓':''}</td></tr>`).join('')||'<tr><td colspan=6 class="mini">—</td></tr>';
+  const hw=(d.homework||[]).slice().reverse().map(h=>`<div class="item"><div class="mini">${esc(h.theme)} · ${esc(h.date)} · ${h.sent?'отправлено':'локально'}</div><div style="white-space:pre-wrap;margin-top:4px">${esc(h.text)}</div></div>`).join('')||'<div class="mini">—</div>';
+  const total=(d.sales?.entries||[]).reduce((s,e)=>s+ +e.amount,0);
+  return `<button class="btn ghost sm" onclick="student=null;imported=null;render()">← назад к списку</button>
+  <div class="card" style="margin-top:12px"><h1 style="font-size:24px">${esc(d.name||student)} ${student==='__import__'?'<span class="pill">импорт</span>':''}</h1>
+    <div class="row" style="margin-top:10px;gap:20px"><div><b>${pct(d)}%</b> <span class="mini">тем</span></div>
+    <div><b>${Object.keys(d.tests||{}).length}</b> <span class="mini">тестов</span></div>
+    <div><b>${total.toLocaleString('ru-RU')} ₽</b> <span class="mini">продаж</span></div>
+    <div><b>${(d.homework||[]).length}</b> <span class="mini">домашек</span></div></div></div>
+  <div class="card"><h3>📝 Тесты</h3><div class="hr"></div>${tests}</div>
+  <div class="card"><h3>✅ Опросник тем</h3><div class="hr"></div><table><tr><th>Тема</th><th>Статус</th><th>Комментарий</th></tr>${survey}</table></div>
+  <div class="card"><h3>💰 Продажи</h3><div class="hr"></div>${sales}<div class="hr"></div><h3 style="font-size:15px">Залетевшие рилс</h3>${reels}</div>
+  <div class="card"><h3>📓 Тетрадь</h3><div class="hr"></div><div class="mini" style="white-space:pre-wrap">${esc(d.notebook?.notes||'—')}</div>
+    <div class="hr"></div><div style="overflow-x:auto"><table><tr><th>Тема</th><th>Цель</th><th>Формат</th><th>Эмоция</th><th>Дедлайн</th><th>✓</th></tr>${plan}</table></div></div>
+  <div class="card"><h3>📮 Домашки</h3><div class="hr"></div>${hw}</div>`;
+}
+</script>
+</body>
+</html>

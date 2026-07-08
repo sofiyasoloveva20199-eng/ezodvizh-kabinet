@@ -164,13 +164,13 @@ function blankData(name){return{
 }}
 
 /* ================= CONTENT ================= */
-const THEMES=[
+let THEMES=[
  'Позиционирование и ниша','Боли и подболи','Триггеры и хуки','Заголовки',
  'Язык результата','Контент-план и рубрики','Рилс на охваты','Рилс на воронку',
  'Актуальные и упаковка','Прогревы','Продуктовая линейка','Продажи и воронки'
 ];
 
-const CARD_MSGS=[
+let CARD_MSGS=[
  {t:'Пост',m:'Сними рилс-ответ на вопрос, который тебе чаще всего задают в директ.'},
  {t:'Пост',m:'Покажи в сторис один расклад в процессе — без лица клиента, только руки и карты.'},
  {t:'Пост',m:'Разбери одну карту через конкретную сцену клиента: «пришла девушка, он не писал 3 недели…».'},
@@ -204,7 +204,7 @@ const CARD_MSGS=[
 ];
 
 // QUIZZES — data-driven
-const QUIZZES=[
+let QUIZZES=[
 {id:'headlines',theme:'Заголовки',title:'Триггерные заголовки',icon:'🎯',items:[
   {type:'choice',q:'Какой заголовок ТРИГГЕРНЕЕ?',opts:[
     'Как научиться делать расклады',
@@ -247,8 +247,22 @@ const QUIZZES=[
 ]}
 ];
 
-const PLAN_GOALS=['Продажа','Прогрев к личности','Экспертность','Прогрев к продукту','Охват'];
-const PLAN_FORMATS=['Рилс','Сторис','Пост','Карусель','Бесплатник'];
+let PLAN_GOALS=['Продажа','Прогрев к личности','Экспертность','Прогрев к продукту','Охват'];
+let PLAN_FORMATS=['Рилс','Сторис','Пост','Карусель','Бесплатник'];
+
+/* Load content overrides: admin preview (localStorage) → content.json → built-in defaults */
+async function loadContent(){
+  let c=null;
+  try{const o=localStorage.getItem('ezo_content_v1'); if(o)c=JSON.parse(o);}catch(e){}
+  if(!c){try{const r=await fetch('content.json',{cache:'no-store'}); if(r.ok)c=await r.json();}catch(e){}}
+  if(c){
+    if(Array.isArray(c.themes)&&c.themes.length)THEMES=c.themes;
+    if(Array.isArray(c.cards)&&c.cards.length)CARD_MSGS=c.cards;
+    if(Array.isArray(c.quizzes)&&c.quizzes.length)QUIZZES=c.quizzes;
+    if(Array.isArray(c.planGoals)&&c.planGoals.length)PLAN_GOALS=c.planGoals;
+    if(Array.isArray(c.planFormats)&&c.planFormats.length)PLAN_FORMATS=c.planFormats;
+  }
+}
 
 /* ================= AUTH UI ================= */
 let authMode='login';
@@ -573,8 +587,9 @@ function exportData(){const blob=new Blob([JSON.stringify(U,null,2)],{type:'appl
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ezodvizh_backup.json';a.click()}
 
 /* ================= INIT ================= */
-(function init(){
+(async function init(){
   setAuthMode('login');
+  await loadContent();
   const s=store.session();
   if(s&&store.users()[s]){USERNAME=s;boot()}
 })();
