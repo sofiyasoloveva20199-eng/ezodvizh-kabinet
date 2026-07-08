@@ -187,7 +187,7 @@ function blankData(name){return{
   name:name||'',created:new Date().toISOString().slice(0,10),
   survey:{}, tests:{}, blocks:{}, sales:{entries:[],reels:[]},
   notebook:{notes:'',plan:[]}, homework:[],
-  calls:{total:8,done:0,next:''}, card:{date:'',idx:0}, settings:{webhook:''}
+  calls:{total:10,done:0,next:''}, card:{date:'',idx:0}, settings:{webhook:''}
 }}
 
 /* ================= CONTENT ================= */
@@ -340,6 +340,7 @@ function boot(){
   U=users[USERNAME].data;
   // migrate missing keys
   const d=blankData();for(const k in d){if(U[k]===undefined)U[k]=d[k]}
+  if(U.calls&&U.calls.total===8)U.calls.total=10; // миграция старого дефолта
   persist();
   document.getElementById('auth').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
@@ -416,7 +417,7 @@ function pgHome(){
     <div class="card stat"><span class="n">${pct}%</span><span class="l">Тем усвоено</span>
       <div class="bar" style="margin-top:10px"><i style="width:${pct}%"></i></div></div>
     <div class="card stat"><span class="n">${testsDone()}/${QUIZZES.length}</span><span class="l">Тестов пройдено</span></div>
-    <div class="card stat"><span class="n">${callsLeft}</span><span class="l">Созвонов осталось</span>
+    <div class="card stat"><span class="n">${callsLeft} из ${U.calls.total}</span><span class="l">созвонов осталось</span>
       <div class="mini" style="margin-top:8px">Следующий: <b>${nextTxt}</b> ${dleft?`· ${dleft}`:''}</div></div>
   </div>
   <div class="grid g2">
