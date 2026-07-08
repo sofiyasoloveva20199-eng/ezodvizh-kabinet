@@ -263,6 +263,9 @@ function viewStudent(){
   const sales=(d.sales?.entries||[]).slice().reverse().map(e=>`<div class="mini" style="margin-bottom:4px">• ${(+e.amount).toLocaleString('ru-RU')} ₽ — ${esc(e.note)} (${esc(e.date)})${sh(e.shot)}</div>`).join('')||'<div class="mini">—</div>';
   const reels=(d.sales?.reels||[]).slice().reverse().map(r=>`<div class="mini" style="margin-bottom:4px">• 👁 ${(+r.reach).toLocaleString('ru-RU')} — ${esc(r.idea)}${sh(r.shot)}</div>`).join('')||'<div class="mini">—</div>';
   const plan=(d.notebook?.plan||[]).map(p=>`<tr><td>${esc(p.topic)}</td><td>${esc(p.goal)}</td><td>${esc(p.format)}</td><td>${esc(p.emotion)}</td><td>${esc(p.deadline)}</td><td>${p.done?'✓':''}</td></tr>`).join('')||'<tr><td colspan=6 class="mini">—</td></tr>';
+  const NF=['Сторис','Идеи рилс','Продукты','Воронки','Заметки из уроков'];
+  const folders=(d.notebook&&d.notebook.folders)||{};
+  const foldersHtml=NF.map(f=>`<div style="margin-bottom:10px"><div class="mini"><b>📁 ${f}</b></div><div style="white-space:pre-wrap">${esc(folders[f]||(f==='Заметки из уроков'&&d.notebook?d.notebook.notes:'')||'—')}</div></div>`).join('');
   const hw=(d.homework||[]).slice().reverse().map(h=>`<div class="item"><div class="mini">${esc(h.theme)} · ${esc(h.date)} · ${h.sent?'отправлено':'локально'}</div><div style="white-space:pre-wrap;margin-top:4px">${esc(h.text)}</div></div>`).join('')||'<div class="mini">—</div>';
   const blocksHtml=(C.blocks||[]).map(b=>{const s=(d.blocks||{})[b.id];if(!s)return '';
     const ans=Object.keys(s.ex||{}).sort((a,z)=>a-z).map(ei=>{const v=s.ex[ei];
@@ -280,8 +283,8 @@ function viewStudent(){
   <div class="card"><h3>📝 Тесты</h3><div class="hr"></div>${tests}</div>
   <div class="card"><h3>✅ Опросник тем</h3><div class="hr"></div><table><tr><th>Тема</th><th>Статус</th><th>Комментарий</th></tr>${survey}</table></div>
   <div class="card"><h3>💰 Продажи</h3><div class="hr"></div>${sales}<div class="hr"></div><h3 style="font-size:15px">Залетевшие рилс</h3>${reels}</div>
-  <div class="card"><h3>📓 Тетрадь</h3><div class="hr"></div><div class="mini" style="white-space:pre-wrap">${esc(d.notebook?.notes||'—')}</div>
-    <div class="hr"></div><div style="overflow-x:auto"><table><tr><th>Тема</th><th>Цель</th><th>Формат</th><th>Эмоция</th><th>Дедлайн</th><th>✓</th></tr>${plan}</table></div></div>
+  <div class="card"><h3>📓 Тетрадь — заметки по папкам</h3><div class="hr"></div>${foldersHtml}
+    <div class="hr"></div><h3 style="font-size:15px">Контент-план</h3><div style="overflow-x:auto"><table><tr><th>Тема</th><th>Цель</th><th>Формат</th><th>Эмоция</th><th>Дедлайн</th><th>✓</th></tr>${plan}</table></div></div>
   <div class="card"><h3>📚 Блоки и задания</h3><div class="hr"></div>${blocksHtml}</div>
   <div class="card"><h3>📮 Домашки</h3><div class="hr"></div>${hw}</div>`;
 }

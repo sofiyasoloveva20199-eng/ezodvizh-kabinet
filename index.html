@@ -129,6 +129,12 @@ th{color:var(--muted);font-weight:500;font-size:11px;letter-spacing:.5px;text-tr
 .lb img{max-width:100%;max-height:90vh;border-radius:12px;border:1px solid var(--border)}
 .thumb{height:54px;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in;vertical-align:middle;object-fit:cover}
 .cta-attach{font-size:12px;color:var(--accent);background:var(--accent-soft);border:1px dashed var(--border);border-radius:10px;padding:9px 12px;margin-top:8px}
+.money-bg{background-image:linear-gradient(rgba(11,9,16,.90),rgba(11,9,16,.95)),url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScxNzAnIGhlaWdodD0nOTYnPjxnIGZpbGw9J25vbmUnIHN0cm9rZT0nIzRlOWU2YScgc3Ryb2tlLXdpZHRoPScxLjMnIG9wYWNpdHk9JzAuOSc+PHJlY3QgeD0nMTYnIHk9JzI2JyB3aWR0aD0nNzQnIGhlaWdodD0nNDInIHJ4PSc3Jy8+PGNpcmNsZSBjeD0nNTMnIGN5PSc0Nycgcj0nMTInLz48cmVjdCB4PScyMicgeT0nMzInIHdpZHRoPSc2MicgaGVpZ2h0PSczMCcgcng9JzQnIG9wYWNpdHk9JzAuNScvPjwvZz48dGV4dCB4PSc0NycgeT0nNTMnIGZvbnQtZmFtaWx5PSdHZW9yZ2lhLHNlcmlmJyBmb250LXNpemU9JzE3JyBmaWxsPScjNGU5ZTZhJz4kPC90ZXh0Pjx0ZXh0IHg9JzEyOCcgeT0nODAnIGZvbnQtZmFtaWx5PSdHZW9yZ2lhLHNlcmlmJyBmb250LXNpemU9JzMwJyBmaWxsPScjNGU5ZTZhJyBvcGFjaXR5PScwLjgnPiQ8L3RleHQ+PHRleHQgeD0nMTMwJyB5PSczMCcgZm9udC1mYW1pbHk9J0dlb3JnaWEsc2VyaWYnIGZvbnQtc2l6ZT0nMTUnIGZpbGw9JyM0ZTllNmEnIG9wYWNpdHk9JzAuNyc+JDwvdGV4dD48L3N2Zz4=");
+  background-repeat:no-repeat,repeat;background-size:cover,150px 85px;background-attachment:fixed,scroll;border-radius:20px;padding:14px;margin:-2px}
+.money-bg .card{background:linear-gradient(180deg,rgba(21,17,31,.92),rgba(15,12,22,.92))}
+.note-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.note-tabs button{background:transparent;color:var(--muted);padding:8px 14px;border-radius:100px;border:1px solid var(--border2);font-size:13px}
+.note-tabs button.on{color:var(--text);background:var(--accent-soft);border-color:var(--border)}
 </style>
 </head>
 <body>
@@ -186,7 +192,7 @@ function persist(){const u=store.users();u[USERNAME]=U;if(!store.saveUsers(u))to
 function blankData(name){return{
   name:name||'',created:new Date().toISOString().slice(0,10),
   survey:{}, tests:{}, blocks:{}, sales:{entries:[],reels:[]},
-  notebook:{notes:'',plan:[]}, homework:[],
+  notebook:{folders:{},plan:[]}, homework:[],
   calls:{total:10,done:0,next:''}, card:{date:'',idx:0}, settings:{webhook:''}
 }}
 
@@ -267,6 +273,7 @@ let PLAN_GOALS=['Продажа','Прогрев к личности','Эксп�
 let PLAN_FORMATS=['Рилс','Сторис','Пост','Карусель','Бесплатник'];
 let LEADERBOARD=[]; // [{name, earned, reels}] — общий рейтинг, ведёт преподаватель в админке
 let BLOCKS=[]; // блоки курса
+const NOTE_FOLDERS=['Сторис','Идеи рилс','Продукты','Воронки','Заметки из уроков'];
 
 /* Load content overrides: admin preview (localStorage) → content.json → built-in defaults */
 async function loadContent(){
@@ -341,6 +348,7 @@ function boot(){
   // migrate missing keys
   const d=blankData();for(const k in d){if(U[k]===undefined)U[k]=d[k]}
   if(U.calls&&U.calls.total===8)U.calls.total=10; // миграция старого дефолта
+  if(U.notebook&&!U.notebook.folders){U.notebook.folders={};if(U.notebook.notes)U.notebook.folders['Заметки из уроков']=U.notebook.notes} // миграция заметок в папки
   persist();
   document.getElementById('auth').classList.add('hide');
   document.getElementById('app').classList.remove('hide');
@@ -448,7 +456,7 @@ function pgHome(){
 function drawCard(){U.card.idx=Math.floor(Math.random()*CARD_MSGS.length);U.card.date=today();persist();render()}
 
 /* ---------- BLOCKS (Обучение) ---------- */
-let openB=null;
+let openB=null, noteFolder='Сторис';
 function blockState(id){if(!U.blocks[id])U.blocks[id]={done:false,ex:{}};return U.blocks[id]}
 function blockAccessible(i){const b=BLOCKS[i];if(!b||!b.published)return false;if(i===0)return true;const p=BLOCKS[i-1];return !!(U.blocks[p.id]&&U.blocks[p.id].done)}
 function pgBlocks(){
@@ -632,7 +640,7 @@ function pgSales(){
     return `<div class="list-item"><div class="row between"><b>👁 ${Number(r.reach).toLocaleString('ru-RU')}</b>
       <span class="mini">${esc(r.date)} <span onclick="delReel(${idx})" style="cursor:pointer;color:var(--bad)"> ✕</span></span></div>
       <div>${esc(r.idea)}</div>${shotThumb(r.shot,r.shot)}</div>`}).join('')||'<div class="mini">Пока нет залетевших рилс.</div>';
-  return `<div class="page-head"><div><span class="pill">Продажи</span><h1 style="margin-top:10px">Мои продажи и охваты</h1></div></div>
+  return `<div class="money-bg"><div class="page-head"><div><span class="pill">Продажи</span><h1 style="margin-top:10px">Мои продажи и охваты</h1></div></div>
   <div class="grid g3" style="margin-bottom:18px">
     <div class="card stat"><span class="n">${total.toLocaleString('ru-RU')} ₽</span><span class="l">Заработано с начала проекта</span></div>
     <div class="card stat"><span class="n">${U.sales.entries.length}</span><span class="l">Продаж внесено</span></div>
@@ -657,7 +665,7 @@ function pgSales(){
       <img id="re-prev" class="thumb hide" style="margin-top:8px">
       <button class="btn" style="margin-top:12px" onclick="addReel()">Добавить</button>
       <div class="hr"></div><h3 style="font-size:16px">Что залетало</h3>${reels}</div>
-  </div>`;
+  </div></div>`;
 }
 function addSale(){const a=document.getElementById('sa-amt').value;if(!a)return toast('Впиши сумму');
   U.sales.entries.push({amount:a,date:document.getElementById('sa-date').value||today(),note:document.getElementById('sa-note').value,shot:saleShot});
@@ -679,10 +687,15 @@ function pgNotebook(){
     <td><input type="date" value="${esc(r.deadline||'')}" oninput="planEdit(${i},'deadline',this.value)"></td>
     <td><input type="checkbox" ${r.done?'checked':''} onchange="planEdit(${i},'done',this.checked)" style="width:auto"> <span onclick="planDel(${i})" style="cursor:pointer;color:var(--bad)">✕</span></td>
   </tr>`).join('');
+  if(!U.notebook.folders)U.notebook.folders={};
+  const tabs=NOTE_FOLDERS.map(f=>`<button class="${f===noteFolder?'on':''}" onclick="noteFolder='${f}';render()">${esc(f)}</button>`).join('');
+  const cur=U.notebook.folders[noteFolder]||'';
   return `<div class="page-head"><div><span class="pill">Тетрадь</span><h1 style="margin-top:10px">Рабочая тетрадь</h1>
-    <div class="muted">Идеи и контент-план. Всё сохраняется само.</div></div></div>
-  <div class="card"><h3>📝 Заметки и идеи</h3><div class="hr"></div>
-    <textarea style="min-height:140px" placeholder="Кидай сюда идеи для контента, мысли, зацепки..." oninput="U.notebook.notes=this.value;persist()">${esc(U.notebook.notes)}</textarea>
+    <div class="muted">Заметки по папкам и контент-план. Всё сохраняется само.</div></div>
+    <button class="btn ghost sm" onclick="exportAll()">⬇ Скачать мои материалы</button></div>
+  <div class="card"><h3>📝 Заметки по папкам</h3><div class="hr"></div>
+    <div class="note-tabs">${tabs}</div>
+    <textarea style="min-height:220px" placeholder="Заметки в папке «${esc(noteFolder)}»..." oninput="saveFolder('${noteFolder}',this.value)">${esc(cur)}</textarea>
   </div>
   <div class="card" style="margin-top:16px"><div class="row between"><h3>🗓 Контент-план</h3>
     <button class="btn sm" onclick="planAdd()">+ строка</button></div><div class="hr"></div>
@@ -691,6 +704,25 @@ function pgNotebook(){
       ${rows||''}
     </table></div>${U.notebook.plan.length?'':'<div class="mini" style="margin-top:10px">Пусто. Нажми «+ строка».</div>'}
   </div>`;
+}
+function saveFolder(f,v){if(!U.notebook.folders)U.notebook.folders={};U.notebook.folders[f]=v;persist()}
+function exportAll(){
+  let t='ЭзоДвиж — мои материалы\nУченик: '+(U.name||USERNAME)+'\nДата выгрузки: '+today()+'\n';
+  t+='\n===== ЗАМЕТКИ ПО ПАПКАМ =====\n';
+  NOTE_FOLDERS.forEach(f=>{t+='\n['+f+']\n'+(((U.notebook.folders||{})[f])||'—')+'\n'});
+  t+='\n===== КОНТЕНТ-ПЛАН =====\n';
+  (U.notebook.plan||[]).forEach(p=>{t+='• '+[p.topic,p.goal,p.format,p.emotion,p.triggers,p.deadline,(p.done?'готово':'')].filter(Boolean).join(' | ')+'\n'});
+  t+='\n===== ОТВЕТЫ ПО БЛОКАМ =====\n';
+  (BLOCKS||[]).forEach(b=>{const s=U.blocks[b.id];if(!s)return;t+='\n### '+b.name+(s.submitted?' (отправлен на проверку)':'')+'\n';
+    (b.exercises||[]).forEach((ex,ei)=>{const v=s.ex[ei];if(v==null||v==='')return;t+=ex.title+'\n';
+      if(v&&typeof v==='object'){if(v.lead)t+='  Главная боль: '+v.lead+'\n';(v.cells||[]).forEach((row,ri)=>{if((row||[]).some(x=>x))t+='  '+(ri+1)+') '+(row||[]).filter(Boolean).join(' | ')+'\n'})}
+      else t+='  '+String(v).replace(/\n/g,'\n  ')+'\n'})});
+  t+='\n===== ПРОДАЖИ =====\n';
+  const tot=(U.sales.entries||[]).reduce((s,e)=>s+ +e.amount,0);
+  t+='Заработано всего: '+tot.toLocaleString('ru-RU')+' ₽\n';
+  (U.sales.entries||[]).forEach(e=>t+='• '+Number(e.amount).toLocaleString('ru-RU')+' ₽ — '+(e.note||'')+' ('+e.date+')\n');
+  t+='Залетевшие рилс:\n';(U.sales.reels||[]).forEach(r=>t+='• '+Number(r.reach).toLocaleString('ru-RU')+' просмотров — '+r.idea+' ('+r.date+')\n');
+  const blob=new Blob([t],{type:'text/plain;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ЭзоДвиж_материалы_'+(U.name||USERNAME)+'.txt';a.click();toast('Файл скачан ✓');
 }
 function planAdd(){U.notebook.plan.push({topic:'',goal:PLAN_GOALS[0],format:PLAN_FORMATS[0],emotion:'',triggers:'',deadline:'',done:false});persist();render()}
 function planEdit(i,k,v){U.notebook.plan[i][k]=v;persist();if(k==='done')render()}
