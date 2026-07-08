@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ЭзоДвиж · Кабинет ученика</title>
+<style>
+:root{
+  --bg:#0b0910; --bg2:#0f0c16; --panel:#15111f; --panel2:#1b1626;
+  --text:#ece9f5; --muted:#9a92b4; --faint:#6f6790;
+  --accent:#a855f7; --accent2:#7c3aed; --accent-soft:rgba(168,85,247,.14);
+  --border:rgba(168,85,247,.18); --border2:rgba(255,255,255,.06);
+  --good:#5ee6a8; --warn:#f0c05a; --bad:#f0736a;
+  --serif:'Cormorant Garamond','Georgia','Times New Roman',serif;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:radial-gradient(1200px 800px at 80% -10%,#1a1030 0,var(--bg) 55%) fixed,var(--bg);
+  color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.55;min-height:100vh;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:.5px;margin:0}
+h1{font-size:34px}h2{font-size:24px}h3{font-size:19px}
+.muted{color:var(--muted)}.faint{color:var(--faint)}
+button{font-family:var(--sans);cursor:pointer;border:none}
+input,textarea,select{font-family:var(--sans);font-size:14px;color:var(--text);background:var(--panel2);
+  border:1px solid var(--border);border-radius:10px;padding:10px 12px;width:100%;outline:none;transition:border .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:80px}
+label{display:block;font-size:12px;color:var(--muted);margin:0 0 5px 2px;letter-spacing:.3px}
+.btn{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;padding:11px 20px;border-radius:12px;
+  font-weight:600;font-size:14px;letter-spacing:.3px;transition:transform .1s,box-shadow .2s;box-shadow:0 6px 20px rgba(124,58,237,.25)}
+.btn:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(124,58,237,.4)}
+.btn:active{transform:translateY(0)}
+.btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text);box-shadow:none}
+.btn.ghost:hover{background:var(--accent-soft)}
+.btn.sm{padding:7px 14px;font-size:13px;border-radius:9px}
+.card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--border2);border-radius:18px;padding:22px}
+.pill{display:inline-block;font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);
+  background:var(--accent-soft);border:1px solid var(--border);border-radius:100px;padding:4px 11px}
+.hide{display:none!important}
+.moon{font-size:22px;filter:drop-shadow(0 0 8px rgba(168,85,247,.6))}
+
+/* AUTH */
+#auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+#auth .card{width:100%;max-width:410px;text-align:center}
+#auth .brand{font-family:var(--serif);font-size:30px;letter-spacing:2px}
+.auth-tabs{display:flex;gap:8px;margin:20px 0 16px}
+.auth-tabs button{flex:1;background:transparent;color:var(--muted);padding:9px;border-radius:10px;border:1px solid transparent;font-size:14px}
+.auth-tabs button.on{color:var(--text);border-color:var(--border);background:var(--accent-soft)}
+#auth .field{text-align:left;margin-bottom:12px}
+.err{color:var(--bad);font-size:13px;min-height:18px;margin-top:4px}
+
+/* SHELL */
+#app{display:grid;grid-template-columns:238px 1fr;min-height:100vh}
+#side{background:linear-gradient(180deg,var(--panel),var(--bg));border-right:1px solid var(--border2);
+  padding:24px 16px;position:sticky;top:0;height:100vh;overflow:auto}
+.logo{font-family:var(--serif);font-size:22px;letter-spacing:2px;padding:0 8px 4px}
+.logo small{display:block;font-family:var(--sans);font-size:10px;letter-spacing:3px;color:var(--faint);text-transform:uppercase;margin-top:2px}
+nav{margin-top:22px;display:flex;flex-direction:column;gap:3px}
+nav a{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:11px;color:var(--muted);
+  text-decoration:none;font-size:14px;transition:.15s;cursor:pointer}
+nav a:hover{color:var(--text);background:var(--accent-soft)}
+nav a.on{color:var(--text);background:var(--accent-soft);border:1px solid var(--border)}
+nav a .ic{font-size:16px;width:20px;text-align:center}
+.side-foot{margin-top:22px;padding-top:16px;border-top:1px solid var(--border2);font-size:13px}
+#main{padding:34px 40px 80px;max-width:1080px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;gap:16px;flex-wrap:wrap}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:900px){#app{grid-template-columns:1fr}#side{position:fixed;z-index:40;transform:translateX(-100%);width:238px;transition:.25s}
+  #side.open{transform:none}#main{padding:20px 18px 70px}.g2,.g3{grid-template-columns:1fr}
+  #burger{display:flex!important}}
+#burger{display:none;position:fixed;top:14px;left:14px;z-index:50;background:var(--panel);border:1px solid var(--border);
+  color:var(--text);width:42px;height:42px;border-radius:12px;align-items:center;justify-content:center;font-size:20px}
+
+/* misc components */
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat .n{font-family:var(--serif);font-size:32px}
+.stat .l{font-size:12px;color:var(--muted);letter-spacing:.4px}
+.bar{height:9px;background:var(--panel2);border-radius:100px;overflow:hidden;border:1px solid var(--border2)}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:100px;transition:width .5s}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border2);vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:11px;letter-spacing:.5px;text-transform:uppercase}
+.tag{font-size:11px;padding:3px 9px;border-radius:100px;background:var(--accent-soft);border:1px solid var(--border);color:var(--accent);white-space:nowrap}
+.list-item{border:1px solid var(--border2);border-radius:13px;padding:14px;margin-bottom:10px;background:var(--panel2)}
+.q-opt{border:1px solid var(--border);border-radius:12px;padding:13px 15px;margin:8px 0;cursor:pointer;transition:.15s;background:var(--panel2)}
+.q-opt:hover{border-color:var(--accent)}
+.q-opt.sel{background:var(--accent-soft);border-color:var(--accent)}
+.q-opt.correct{border-color:var(--good);background:rgba(94,230,168,.1)}
+.q-opt.wrong{border-color:var(--bad);background:rgba(240,115,106,.1)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel);
+  border:1px solid var(--accent);color:var(--text);padding:13px 22px;border-radius:13px;box-shadow:0 12px 40px rgba(0,0,0,.5);
+  transition:transform .3s;z-index:60;font-size:14px}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.daycard{background:linear-gradient(150deg,#241436,#140d20);border:1px solid var(--border);border-radius:18px;
+  padding:26px;text-align:center;min-height:150px;display:flex;flex-direction:column;justify-content:center;gap:12px}
+.daycard .type{letter-spacing:2px;font-size:11px;text-transform:uppercase;color:var(--accent)}
+.daycard .msg{font-family:var(--serif);font-size:21px;line-height:1.4}
+.icircle{width:34px;height:34px;border-radius:50%;background:var(--accent-soft);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.hr{height:1px;background:var(--border2);margin:18px 0}
+.mini{font-size:12px;color:var(--faint)}
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH ============ -->
+<div id="auth">
+  <div class="card">
+    <div class="moon">☾</div>
+    <div class="brand">ЭзоДвиж</div>
+    <div class="mini" style="letter-spacing:3px;text-transform:uppercase;margin-top:4px">Кабинет ученика</div>
+    <div class="auth-tabs">
+      <button id="tab-login" class="on" onclick="setAuthMode('login')">Вход</button>
+      <button id="tab-reg" onclick="setAuthMode('reg')">Регистрация</button>
+    </div>
+    <div class="field"><label>Логин</label><input id="au-user" autocomplete="username" placeholder="ваше имя"></div>
+    <div class="field"><label>Пароль</label><input id="au-pass" type="password" autocomplete="current-password" placeholder="••••••"></div>
+    <div id="au-namewrap" class="field hide"><label>Как тебя зовут</label><input id="au-name" placeholder="Имя"></div>
+    <div class="err" id="au-err"></div>
+    <button class="btn" style="width:100%" onclick="doAuth()" id="au-btn">Войти</button>
+    <div class="mini" style="margin-top:14px">Данные хранятся в этом браузере. Один аккаунт — одно устройство.</div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hide">
+  <button id="burger" onclick="document.getElementById('side').classList.toggle('open')">☰</button>
+  <aside id="side">
+    <div class="logo">ЭзоДвиж<small>кабинет ученика</small></div>
+    <nav id="nav"></nav>
+    <div class="side-foot">
+      <div class="row between"><span class="muted" id="who">—</span></div>
+      <button class="btn ghost sm" style="margin-top:10px;width:100%" onclick="logout()">Выйти</button>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= STORAGE ================= */
+const LS_USERS='ezo_users_v1', LS_SESSION='ezo_session_v1';
+const store={
+  users(){try{return JSON.parse(localStorage.getItem(LS_USERS))||{}}catch(e){return {}}},
+  saveUsers(u){localStorage.setItem(LS_USERS,JSON.stringify(u))},
+  session(){return localStorage.getItem(LS_SESSION)},
+  setSession(u){u?localStorage.setItem(LS_SESSION,u):localStorage.removeItem(LS_SESSION)}
+};
+function hash(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0}return 'h'+h}
+let U=null; // current user object (reference into users store)
+let USERNAME=null;
+function persist(){const u=store.users();u[USERNAME]=U;store.saveUsers(u)}
+function blankData(name){return{
+  name:name||'',created:new Date().toISOString().slice(0,10),
+  survey:{}, tests:{}, sales:{entries:[],reels:[]},
+  notebook:{notes:'',plan:[]}, homework:[],
+  calls:{total:8,done:0,next:''}, card:{date:'',idx:0}, settings:{webhook:''}
+}}
+
+/* ================= CONTENT ================= */
+const THEMES=[
+ 'Позиционирование и ниша','Боли и подболи','Триггеры и хуки','Заголовки',
+ 'Язык результата','Контент-план и рубрики','Рилс на охваты','Рилс на воронку',
+ 'Актуальные и упаковка','Прогревы','Продуктовая линейка','Продажи и воронки'
+];
+
+const CARD_MSGS=[
+ {t:'Пост',m:'Сними рилс-ответ на вопрос, который тебе чаще всего задают в директ.'},
+ {t:'Пост',m:'Покажи в сторис один расклад в процессе — без лица клиента, только руки и карты.'},
+ {t:'Пост',m:'Разбери одну карту через конкретную сцену клиента: «пришла девушка, он не писал 3 недели…».'},
+ {t:'Пост',m:'Сегодня — кейс. Возьми клиента с явным до/после и распиши анонимно по шагам.'},
+ {t:'Пост',m:'Вовлекалка в сторис: «Сколько дней он уже молчит? Пиши цифру».'},
+ {t:'Пост',m:'Заголовочный рилс на боль «не знаю, туда ли я иду». Заземли в утреннюю сцену с ноутом.'},
+ {t:'Действие',m:'Проверь шапку профиля: есть ли осязаемая выгода, а не «помогаю обрести гармонию»?'},
+ {t:'Действие',m:'Выпиши 5 дословных фраз клиентов из переписок — это твои будущие хуки.'},
+ {t:'Действие',m:'Собери одно новое актуальное «Как проходит расклад» и закрепи прайс.'},
+ {t:'Пост',m:'Сними «проверку» практики или ритуала с реакцией «ого, сработало».'},
+ {t:'Пост',m:'Пост-миф: развенчай одно частое заблуждение о таро/эзотерике.'},
+ {t:'Пост',m:'Открытый вопрос в ленте: «Кто возвращал бывшего — как вы сошлись?».'},
+ {t:'Действие',m:'Возьми свой слабый заголовок и перепиши его через язык результата.'},
+ {t:'Действие',m:'Запиши в тетрадь 3 идеи контента, пока не забыла. Просто накидай.'},
+ {t:'Пост',m:'Личное: расскажи, как ты пришла в практику. Одна честная история цепляет сильнее пользы.'},
+ {t:'Напутствие',m:'Один выложенный пост сегодня лучше, чем идеальная стратегия «с понедельника».'},
+ {t:'Напутствие',m:'Тебя не должны любить все. Тебя должны найти свои. Пиши для них.'},
+ {t:'Напутствие',m:'«Чушь сниму» — это страх, а не факт. Сними и посмотри на цифры через 3 дня.'},
+ {t:'Напутствие',m:'Контент — это марафон касаний. Не один пост продаёт, а система.'},
+ {t:'Напутствие',m:'Сегодня достаточно сделать одно действие для блога. Выбери его и закрой.'},
+ {t:'Действие',m:'Ответь на 3 комментария так, чтобы увести человека на кодовое слово.'},
+ {t:'Пост',m:'Карусель с готовым инструментом: шаблон, промт или 5 фраз — то, что уносят и применяют.'},
+ {t:'Пост',m:'Сними «день из жизни» через свою оптику — жизненный формат сближает.'},
+ {t:'Действие',m:'Проверь: у последнего поста есть чёткий следующий шаг (CTA)? Если нет — допиши.'},
+ {t:'Напутствие',m:'Сравнивать себя с блогерами уровня «звезда» — воровать у себя энергию. Смотри на свой прогресс.'},
+ {t:'Пост',m:'Разбери частую ошибку твоей ниши: «что делают не так, когда…».'},
+ {t:'Действие',m:'Заполни контент-план на 3 дня вперёд — тема, цель, формат, дедлайн.'},
+ {t:'Пост',m:'Расскажи мини-историю клиента, где расклад «попал в точку». Анонимно.'},
+ {t:'Напутствие',m:'Готово лучше, чем идеально. Выложи и улучшай на ходу.'},
+ {t:'Действие',m:'Сегодня продай мягко: напомни в сторис, что у тебя можно заказать и как.'}
+];
+
+// QUIZZES — data-driven
+const QUIZZES=[
+{id:'headlines',theme:'Заголовки',title:'Триггерные заголовки',icon:'🎯',items:[
+  {type:'choice',q:'Какой заголовок ТРИГГЕРНЕЕ?',opts:[
+    'Как научиться делать расклады',
+    'Расклад, который за 5 минут показывает — врёт он или нет'],correct:1,
+    exp:'Второй: конкретика + интрига + быстрый результат. Первый — «про процесс», без крючка.'},
+  {type:'choice',q:'Где сильнее крючок?',opts:[
+    'Мои услуги и цены',
+    'Сколько стоит расклад, после которого она ушла от абьюзера'],correct:1,
+    exp:'Второй бьёт в результат и историю, а не в сухой список услуг.'},
+  {type:'count',q:'Сколько триггеров в заголовке: «Только сегодня — бесплатный разбор, который покажет, почему он молчит. Осталось 3 места».',
+    correct:4,exp:'Срочность («только сегодня»), бесплатно, интрига/боль («почему он молчит»), дефицит («3 места») = 4.'},
+  {type:'count',q:'Сколько триггеров: «Я молчала 2 года и чуть не потеряла блог — вот что меня спасло».',
+    correct:3,exp:'Личная история/уязвимость, интрига («что спасло»), высокая ставка/страх потери = 3.'},
+  {type:'choice',q:'Что сильнее останавливает скролл?',opts:[
+    'Немного об энергиях этой недели',
+    'Если он резко похолодел — читай, пока не поздно'],correct:1,
+    exp:'Второй: прямое обращение + боль + срочность.'}
+]},
+{id:'result',theme:'Язык результата',title:'Язык результата vs процесса',icon:'✨',items:[
+  {type:'choice',q:'Где ЯЗЫК РЕЗУЛЬТАТА?',opts:[
+    'Делаю чистку денежного канала','Через месяц перестаёшь считать до зарплаты и впервые откладываешь'],correct:1,
+    exp:'Результат = что меняется в жизни клиента, а не название процедуры.'},
+  {type:'choice',q:'Выбери формулировку через результат:',opts:[
+    'Провожу диагностику по фото и картам','За час на созвоне называю, что именно ломает твою жизнь, и что делать'],correct:1,
+    exp:'Второй описывает исход для клиента.'},
+  {type:'choice',q:'Что из этого — результат, а не процесс?',opts:[
+    'Работаю с энергетикой и блоками','Встаёшь утром без кома в груди и без мысли всё бросить'],correct:1,
+    exp:'Ощущение ПОСЛЕ = язык результата.'},
+  {type:'choice',q:'Результат:',opts:[
+    'Расторгаю астральные контракты','Перестаёшь тянуть на себе всех — силы наконец остаются тебе'],correct:1,
+    exp:'Второй понятен клиенту и показывает выгоду.'}
+]},
+{id:'podboli',theme:'Боли и подболи',title:'ПодБоли: заземли абстракцию',icon:'🕯️',items:[
+  {type:'open',q:'Пофантазируй: какие подБоли (конкретные сцены из жизни) выходят из боли «Не знаю, где моё предназначение»? Напиши 3.',
+    sample:'• По утрам оттягиваешь момент открыть ноут с работой, которую выбрала 10 лет назад «потому что надо».\n• Смотришь, как подруга горит своим делом, и ловишь ком: «а я так и не поняла, чего хочу».\n• В отпуске ловишь себя на мысли «не хочу возвращаться» — и снова глушишь её сериалом.'},
+  {type:'open',q:'Боль: «Он охладел». Распиши 3 подболи-сцены.',
+    sample:'• Заходишь в его сторис в 2 ночи, видишь «был недавно» и закрываешь телефон с комом.\n• Он отвечает раз в сутки сухим «ок», а ты перечитываешь переписку и ищешь, что не так.\n• На людях он «нормальный», а наедине — телефон важнее тебя.'},
+  {type:'open',q:'Боль: «Нет денег». Распиши 3 подболи-сцены.',
+    sample:'• В конце месяца считаешь, хватит ли на аренду, и переносишь стоматолога на «потом».\n• В магазине смотришь на ценник и молча кладёшь обратно.\n• Отменяешь встречу с подругами, потому что «сейчас не потяну кафе».'}
+]}
+];
+
+const PLAN_GOALS=['Продажа','Прогрев к личности','Экспертность','Прогрев к продукту','Охват'];
+const PLAN_FORMATS=['Рилс','Сторис','Пост','Карусель','Бесплатник'];
+
+/* ================= AUTH UI ================= */
+let authMode='login';
+function setAuthMode(m){authMode=m;
+  document.getElementById('tab-login').classList.toggle('on',m==='login');
+  document.getElementById('tab-reg').classList.toggle('on',m==='reg');
+  document.getElementById('au-namewrap').classList.toggle('hide',m!=='reg');
+  document.getElementById('au-btn').textContent=m==='login'?'Войти':'Создать аккаунт';
+  document.getElementById('au-err').textContent='';
+}
+function doAuth(){
+  const user=document.getElementById('au-user').value.trim().toLowerCase();
+  const pass=document.getElementById('au-pass').value;
+  const err=document.getElementById('au-err');
+  if(!user||!pass){err.textContent='Заполни логин и пароль';return}
+  const users=store.users();
+  if(authMode==='reg'){
+    if(users[user]){err.textContent='Такой логин уже есть';return}
+    const name=document.getElementById('au-name').value.trim();
+    users[user]={pass:hash(pass),data:blankData(name)};
+    store.saveUsers(users);
+    login(user);
+  }else{
+    if(!users[user]||users[user].pass!==hash(pass)){err.textContent='Неверный логин или пароль';return}
+    login(user);
+  }
+}
+function login(user){USERNAME=user;store.setSession(user);boot()}
+function logout(){store.setSession(null);location.reload()}
+
+/* ================= APP BOOT ================= */
+const NAV=[
+ {id:'home',ic:'☾',t:'Дашборд'},
+ {id:'tests',ic:'📝',t:'Тесты'},
+ {id:'survey',ic:'✅',t:'Опросник тем'},
+ {id:'sales',ic:'💰',t:'Мои продажи'},
+ {id:'notebook',ic:'📓',t:'Рабочая тетрадь'},
+ {id:'homework',ic:'📮',t:'Домашка'},
+ {id:'settings',ic:'⚙️',t:'Настройки'}
+];
+let page='home';
+function boot(){
+  const users=store.users();
+  U=users[USERNAME].data;
+  // migrate missing keys
+  const d=blankData();for(const k in d){if(U[k]===undefined)U[k]=d[k]}
+  persist();
+  document.getElementById('auth').classList.add('hide');
+  document.getElementById('app').classList.remove('hide');
+  document.getElementById('who').textContent='☾ '+(U.name||USERNAME);
+  const nav=document.getElementById('nav');nav.innerHTML='';
+  NAV.forEach(n=>{const a=document.createElement('a');a.innerHTML=`<span class="ic">${n.ic}</span>${n.t}`;
+    a.onclick=()=>go(n.id);a.dataset.id=n.id;nav.appendChild(a)});
+  go('home');
+}
+function go(p){page=p;
+  document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on',a.dataset.id===p));
+  document.getElementById('side').classList.remove('open');
+  render();window.scrollTo(0,0);
+}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200)}
+function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function today(){return new Date().toISOString().slice(0,10)}
+
+/* ================= RENDER ROUTER ================= */
+function render(){
+  const m=document.getElementById('main');
+  m.innerHTML=({home:pgHome,tests:pgTests,survey:pgSurvey,sales:pgSales,notebook:pgNotebook,homework:pgHomework,settings:pgSettings}[page])();
+  if(afterRender[page])afterRender[page]();
+}
+const afterRender={};
+
+/* ---------- HOME ---------- */
+function progressPct(){
+  const done=Object.values(U.survey).filter(v=>v&&v.level==='Понятно').length;
+  return Math.round(done/THEMES.length*100);
+}
+function testsDone(){return Object.keys(U.tests).length}
+function pgHome(){
+  // card of day
+  if(U.card.date!==today()){U.card.idx=Math.floor(Math.random()*CARD_MSGS.length);U.card.date=today();persist()}
+  const c=CARD_MSGS[U.card.idx];
+  const pct=progressPct();
+  const callsLeft=Math.max(0,(U.calls.total||0)-(U.calls.done||0));
+  let nextTxt='—',dleft='';
+  if(U.calls.next){const d=Math.ceil((new Date(U.calls.next)-new Date(today()))/864e5);
+    nextTxt=new Date(U.calls.next).toLocaleDateString('ru-RU');dleft=d>=0?`через ${d} дн.`:'прошёл'}
+  return `
+  <div class="page-head"><div><span class="pill">Дашборд</span><h1 style="margin-top:10px">Привет, ${esc(U.name||USERNAME)} ☾</h1>
+    <div class="muted">Твой путь в ЭзоДвиж — по шагам.</div></div></div>
+  <div class="grid g3" style="margin-bottom:16px">
+    <div class="card stat"><span class="n">${pct}%</span><span class="l">Тем усвоено</span>
+      <div class="bar" style="margin-top:10px"><i style="width:${pct}%"></i></div></div>
+    <div class="card stat"><span class="n">${testsDone()}/${QUIZZES.length}</span><span class="l">Тестов пройдено</span></div>
+    <div class="card stat"><span class="n">${callsLeft}</span><span class="l">Созвонов осталось</span>
+      <div class="mini" style="margin-top:8px">Следующий: <b>${nextTxt}</b> ${dleft?`· ${dleft}`:''}</div></div>
+  </div>
+  <div class="grid g2">
+    <div>
+      <div class="daycard">
+        <span class="type">Карта дня · ${esc(c.t)}</span>
+        <div class="msg">${esc(c.m)}</div>
+        <div><button class="btn ghost sm" onclick="drawCard()">Вытянуть заново</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Что дальше?</h3>
+      <div class="hr"></div>
+      <div class="row" style="flex-direction:column;align-items:stretch;gap:10px">
+        <button class="btn ghost" onclick="go('tests')">📝 Пройти тест по теме</button>
+        <button class="btn ghost" onclick="go('notebook')">📓 Заполнить контент-план</button>
+        <button class="btn ghost" onclick="go('sales')">💰 Внести продажу / залетевший рилс</button>
+        <button class="btn ghost" onclick="go('homework')">📮 Отправить домашку</button>
+      </div>
+    </div>
+  </div>`;
+}
+function drawCard(){U.card.idx=Math.floor(Math.random()*CARD_MSGS.length);U.card.date=today();persist();render()}
+
+/* ---------- TESTS ---------- */
+let quizState=null; // {id, answers:{}, checked:bool}
+function pgTests(){
+  if(quizState){return renderQuiz()}
+  let cards=QUIZZES.map(q=>{
+    const res=U.tests[q.id];
+    const badge=res?`<span class="tag">✓ ${res.score}/${res.total}</span>`:`<span class="mini">не пройден</span>`;
+    return `<div class="card" style="cursor:pointer" onclick="startQuiz('${q.id}')">
+      <div class="row between"><h3>${q.icon} ${esc(q.title)}</h3>${badge}</div>
+      <div class="muted" style="margin-top:6px">Тема: ${esc(q.theme)} · ${q.items.length} заданий</div></div>`}).join('');
+  return `<div class="page-head"><div><span class="pill">Тесты</span><h1 style="margin-top:10px">Проверка усвоения</h1>
+    <div class="muted">Заголовки, триггеры, язык результата, подболи.</div></div></div>
+    <div class="grid" style="gap:14px">${cards}</div>`;
+}
+function startQuiz(id){quizState={id,answers:{},checked:false};render()}
+function renderQuiz(){
+  const q=QUIZZES.find(x=>x.id===quizState.id);
+  const items=q.items.map((it,i)=>{
+    if(it.type==='choice'){
+      const opts=it.opts.map((o,oi)=>{
+        let cls='q-opt';const sel=quizState.answers[i]===oi;
+        if(quizState.checked){if(oi===it.correct)cls+=' correct';else if(sel)cls+=' wrong'}
+        else if(sel)cls+=' sel';
+        return `<div class="${cls}" onclick="pickOpt(${i},${oi})">${esc(o)}</div>`}).join('');
+      return `<div class="list-item"><b>${i+1}. ${esc(it.q)}</b>${opts}
+        ${quizState.checked?`<div class="mini" style="margin-top:6px">💡 ${esc(it.exp)}</div>`:''}</div>`;
+    }
+    if(it.type==='count'){
+      const v=quizState.answers[i]??'';
+      let fb='';if(quizState.checked){const ok=Number(v)===it.correct;
+        fb=`<div class="mini" style="margin-top:6px;color:${ok?'var(--good)':'var(--bad)'}">${ok?'Верно!':'Правильный ответ: '+it.correct} · ${esc(it.exp)}</div>`}
+      return `<div class="list-item"><b>${i+1}. ${esc(it.q)}</b>
+        <input type="number" style="max-width:120px;margin-top:8px" value="${v}" ${quizState.checked?'disabled':''}
+          oninput="quizState.answers[${i}]=this.value">${fb}</div>`;
+    }
+    // open
+    const v=quizState.answers[i]??'';
+    return `<div class="list-item"><b>${i+1}. ${esc(it.q)}</b>
+      <textarea style="margin-top:8px" oninput="quizState.answers[${i}]=this.value" placeholder="Твой вариант...">${esc(v)}</textarea>
+      ${quizState.checked?`<div class="mini" style="margin-top:8px"><b>Пример-эталон:</b><br>${esc(it.sample).replace(/\n/g,'<br>')}</div>`:''}</div>`;
+  }).join('');
+  const foot=quizState.checked
+    ? `<button class="btn" onclick="finishQuiz()">Готово</button> <button class="btn ghost" onclick="startQuiz('${q.id}')">Пройти заново</button>`
+    : `<button class="btn" onclick="checkQuiz()">Проверить</button> <button class="btn ghost" onclick="quizState=null;render()">Назад</button>`;
+  return `<div class="page-head"><div><span class="pill">${esc(q.theme)}</span><h1 style="margin-top:10px">${q.icon} ${esc(q.title)}</h1></div></div>
+    ${items}<div class="row" style="margin-top:16px">${foot}</div>`;
+}
+function pickOpt(i,oi){if(quizState.checked)return;quizState.answers[i]=oi;render()}
+function checkQuiz(){
+  const q=QUIZZES.find(x=>x.id===quizState.id);
+  let score=0,auto=0;
+  q.items.forEach((it,i)=>{
+    if(it.type==='choice'){auto++;if(quizState.answers[i]===it.correct)score++}
+    else if(it.type==='count'){auto++;if(Number(quizState.answers[i])===it.correct)score++}
+  });
+  quizState.checked=true;quizState._score=score;quizState._auto=auto;render();
+}
+function finishQuiz(){
+  const q=QUIZZES.find(x=>x.id===quizState.id);
+  U.tests[q.id]={score:quizState._score||0,total:quizState._auto||q.items.length,date:today()};
+  persist();quizState=null;toast('Результат сохранён ✓');render();
+}
+
+/* ---------- SURVEY ---------- */
+function pgSurvey(){
+  const rows=THEMES.map((t,i)=>{
+    const s=U.survey[t]||{};
+    const lv=l=>`<button class="btn sm ${s.level===l?'':'ghost'}" onclick="setSurvey(${i},'${l}')">${l}</button>`;
+    return `<div class="list-item"><b>${esc(t)}</b>
+      <div class="row" style="margin-top:8px">${lv('Понятно')}${lv('Так себе')}${lv('Не понятно')}</div>
+      <input style="margin-top:8px" placeholder="Что именно непонятно? (по желанию)" value="${esc(s.note||'')}"
+        oninput="U.survey['${t.replace(/'/g,"\\'")}']=Object.assign({},U.survey['${t.replace(/'/g,"\\'")}'],{note:this.value});persist()"></div>`;
+  }).join('');
+  return `<div class="page-head"><div><span class="pill">Опросник</span><h1 style="margin-top:10px">Что понятно, а что нет</h1>
+    <div class="muted">Отметь по каждой теме — я увижу, где нужна поддержка.</div></div></div>${rows}`;
+}
+function setSurvey(i,level){const t=THEMES[i];U.survey[t]=Object.assign({},U.survey[t],{level});persist();render()}
+
+/* ---------- SALES ---------- */
+function pgSales(){
+  const total=U.sales.entries.reduce((s,e)=>s+Number(e.amount||0),0);
+  const entries=U.sales.entries.slice().reverse().map((e,ri)=>{
+    const idx=U.sales.entries.length-1-ri;
+    return `<div class="list-item"><div class="row between"><b>${Number(e.amount).toLocaleString('ru-RU')} ₽</b>
+      <span class="mini">${esc(e.date)} <span onclick="delSale(${idx})" style="cursor:pointer;color:var(--bad)"> ✕</span></span></div>
+      <div class="muted">${esc(e.note||'')}</div></div>`}).join('')||'<div class="mini">Пока нет записей.</div>';
+  const reels=U.sales.reels.slice().reverse().map((r,ri)=>{
+    const idx=U.sales.reels.length-1-ri;
+    return `<div class="list-item"><div class="row between"><b>👁 ${Number(r.reach).toLocaleString('ru-RU')}</b>
+      <span class="mini">${esc(r.date)} <span onclick="delReel(${idx})" style="cursor:pointer;color:var(--bad)"> ✕</span></span></div>
+      <div>${esc(r.idea)}</div></div>`}).join('')||'<div class="mini">Пока нет залетевших рилс.</div>';
+  return `<div class="page-head"><div><span class="pill">Продажи</span><h1 style="margin-top:10px">Мои продажи и охваты</h1></div></div>
+  <div class="grid g3" style="margin-bottom:18px">
+    <div class="card stat"><span class="n">${total.toLocaleString('ru-RU')} ₽</span><span class="l">Заработано с начала проекта</span></div>
+    <div class="card stat"><span class="n">${U.sales.entries.length}</span><span class="l">Продаж внесено</span></div>
+    <div class="card stat"><span class="n">${U.sales.reels.length}</span><span class="l">Залетевших рилс</span></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>💰 Добавить продажу</h3><div class="hr"></div>
+      <div class="row"><div style="flex:1"><label>Сумма, ₽</label><input id="sa-amt" type="number" placeholder="3000"></div>
+      <div style="flex:1"><label>Дата</label><input id="sa-date" type="date" value="${today()}"></div></div>
+      <label style="margin-top:10px">Что продала</label><input id="sa-note" placeholder="Расклад на отношения">
+      <button class="btn" style="margin-top:12px" onclick="addSale()">Добавить</button>
+      <div class="hr"></div><h3 style="font-size:16px">История</h3>${entries}</div>
+    <div class="card"><h3>🔥 Залетевший рилс</h3><div class="hr"></div>
+      <label>Смысл / о чём рилс</label><input id="re-idea" placeholder="Проверка ритуала на деньги">
+      <div class="row" style="margin-top:10px"><div style="flex:1"><label>Охваты</label><input id="re-reach" type="number" placeholder="12000"></div>
+      <div style="flex:1"><label>Дата</label><input id="re-date" type="date" value="${today()}"></div></div>
+      <button class="btn" style="margin-top:12px" onclick="addReel()">Добавить</button>
+      <div class="hr"></div><h3 style="font-size:16px">Что залетало</h3>${reels}</div>
+  </div>`;
+}
+function addSale(){const a=document.getElementById('sa-amt').value;if(!a)return toast('Впиши сумму');
+  U.sales.entries.push({amount:a,date:document.getElementById('sa-date').value||today(),note:document.getElementById('sa-note').value});
+  persist();toast('Продажа добавлена ✓');render()}
+function delSale(i){U.sales.entries.splice(i,1);persist();render()}
+function addReel(){const idea=document.getElementById('re-idea').value;if(!idea)return toast('Впиши смысл рилса');
+  U.sales.reels.push({idea,reach:document.getElementById('re-reach').value||0,date:document.getElementById('re-date').value||today()});
+  persist();toast('Рилс добавлен ✓');render()}
+function delReel(i){U.sales.reels.splice(i,1);persist();render()}
+
+/* ---------- NOTEBOOK ---------- */
+function pgNotebook(){
+  const rows=U.notebook.plan.map((r,i)=>`<tr>
+    <td><input value="${esc(r.topic||'')}" oninput="planEdit(${i},'topic',this.value)" placeholder="тема"></td>
+    <td><select onchange="planEdit(${i},'goal',this.value)">${PLAN_GOALS.map(g=>`<option ${r.goal===g?'selected':''}>${g}</option>`).join('')}</select></td>
+    <td><select onchange="planEdit(${i},'format',this.value)">${PLAN_FORMATS.map(f=>`<option ${r.format===f?'selected':''}>${f}</option>`).join('')}</select></td>
+    <td><input value="${esc(r.emotion||'')}" oninput="planEdit(${i},'emotion',this.value)" placeholder="эмоция"></td>
+    <td><input value="${esc(r.triggers||'')}" oninput="planEdit(${i},'triggers',this.value)" placeholder="триггеры"></td>
+    <td><input type="date" value="${esc(r.deadline||'')}" oninput="planEdit(${i},'deadline',this.value)"></td>
+    <td><input type="checkbox" ${r.done?'checked':''} onchange="planEdit(${i},'done',this.checked)" style="width:auto"> <span onclick="planDel(${i})" style="cursor:pointer;color:var(--bad)">✕</span></td>
+  </tr>`).join('');
+  return `<div class="page-head"><div><span class="pill">Тетрадь</span><h1 style="margin-top:10px">Рабочая тетрадь</h1>
+    <div class="muted">Идеи и контент-план. Всё сохраняется само.</div></div></div>
+  <div class="card"><h3>📝 Заметки и идеи</h3><div class="hr"></div>
+    <textarea style="min-height:140px" placeholder="Кидай сюда идеи для контента, мысли, зацепки..." oninput="U.notebook.notes=this.value;persist()">${esc(U.notebook.notes)}</textarea>
+  </div>
+  <div class="card" style="margin-top:16px"><div class="row between"><h3>🗓 Контент-план</h3>
+    <button class="btn sm" onclick="planAdd()">+ строка</button></div><div class="hr"></div>
+    <div style="overflow-x:auto"><table>
+      <tr><th>Тема</th><th>Цель</th><th>Формат</th><th>Эмоция</th><th>Триггеры</th><th>Дедлайн</th><th>✓</th></tr>
+      ${rows||''}
+    </table></div>${U.notebook.plan.length?'':'<div class="mini" style="margin-top:10px">Пусто. Нажми «+ строка».</div>'}
+  </div>`;
+}
+function planAdd(){U.notebook.plan.push({topic:'',goal:PLAN_GOALS[0],format:PLAN_FORMATS[0],emotion:'',triggers:'',deadline:'',done:false});persist();render()}
+function planEdit(i,k,v){U.notebook.plan[i][k]=v;persist();if(k==='done')render()}
+function planDel(i){U.notebook.plan.splice(i,1);persist();render()}
+
+/* ---------- HOMEWORK ---------- */
+function pgHomework(){
+  const hist=U.homework.slice().reverse().map(h=>`<div class="list-item">
+    <div class="row between"><span class="tag">${esc(h.theme)}</span><span class="mini">${esc(h.date)} · ${h.sent?'отправлено':'сохранено'}</span></div>
+    <div style="margin-top:6px;white-space:pre-wrap">${esc(h.text)}</div></div>`).join('')||'<div class="mini">Пока нет домашек.</div>';
+  const hasHook=U.settings.webhook?'':'<div class="mini" style="color:var(--warn);margin-top:6px">⚠ Автоотправка в Telegram-бот включится, когда преподаватель настроит бота (Настройки → webhook).</div>';
+  return `<div class="page-head"><div><span class="pill">Домашка</span><h1 style="margin-top:10px">Отправить домашнее задание</h1></div></div>
+  <div class="card"><label>Тема</label>
+    <select id="hw-theme">${THEMES.map(t=>`<option>${t}</option>`).join('')}</select>
+    <label style="margin-top:10px">Задание / ответ</label>
+    <textarea id="hw-text" style="min-height:140px" placeholder="Пиши сюда свою работу..."></textarea>
+    ${hasHook}
+    <div class="row" style="margin-top:12px"><button class="btn" onclick="sendHW()">Отправить преподавателю</button>
+      <button class="btn ghost" onclick="downloadHW()">Скачать копию</button></div>
+  </div>
+  <div class="card" style="margin-top:16px"><h3>История отправок</h3><div class="hr"></div>${hist}</div>`;
+}
+function collectHW(){return{theme:document.getElementById('hw-theme').value,text:document.getElementById('hw-text').value.trim(),date:today()}}
+async function sendHW(){
+  const h=collectHW();if(!h.text)return toast('Напиши ответ');
+  h.sent=false;
+  if(U.settings.webhook){
+    try{await fetch(U.settings.webhook,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({student:U.name||USERNAME,theme:h.theme,text:h.text})});h.sent=true;toast('Отправлено преподавателю ✓')}
+    catch(e){toast('Не удалось отправить — сохранено локально')}
+  }else{toast('Сохранено. Автоотправка пока не настроена')}
+  U.homework.push(h);persist();render();
+}
+function downloadHW(){const h=collectHW();if(!h.text)return toast('Напиши ответ');
+  const blob=new Blob([`ЭзоДвиж — домашка\nУченик: ${U.name||USERNAME}\nТема: ${h.theme}\nДата: ${h.date}\n\n${h.text}`],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`домашка_${h.theme}.txt`;a.click()}
+
+/* ---------- SETTINGS ---------- */
+function pgSettings(){
+  return `<div class="page-head"><div><span class="pill">Настройки</span><h1 style="margin-top:10px">Настройки</h1></div></div>
+  <div class="card"><h3>Профиль</h3><div class="hr"></div>
+    <label>Имя</label><input value="${esc(U.name||'')}" oninput="U.name=this.value;persist();document.getElementById('who').textContent='☾ '+(U.name||USERNAME)">
+  </div>
+  <div class="card" style="margin-top:16px"><h3>Созвоны</h3><div class="hr"></div>
+    <div class="row"><div style="flex:1"><label>Всего созвонов</label><input type="number" value="${U.calls.total}" oninput="U.calls.total=+this.value;persist()"></div>
+    <div style="flex:1"><label>Проведено</label><input type="number" value="${U.calls.done}" oninput="U.calls.done=+this.value;persist()"></div>
+    <div style="flex:1"><label>Следующий</label><input type="date" value="${esc(U.calls.next)}" oninput="U.calls.next=this.value;persist()"></div></div>
+  </div>
+  <div class="card" style="margin-top:16px"><h3>Telegram-бот преподавателя</h3><div class="hr"></div>
+    <label>Webhook-URL для приёма домашки (заполняет преподаватель)</label>
+    <input value="${esc(U.settings.webhook)}" placeholder="https://..." oninput="U.settings.webhook=this.value;persist()">
+    <div class="mini" style="margin-top:8px">Когда бот будет готов, сюда впишется адрес — и домашки начнут приходить в Telegram автоматически.</div>
+  </div>
+  <div class="card" style="margin-top:16px"><h3>Данные</h3><div class="hr"></div>
+    <button class="btn ghost" onclick="exportData()">Скачать мои данные (backup)</button></div>`;
+}
+function exportData(){const blob=new Blob([JSON.stringify(U,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ezodvizh_backup.json';a.click()}
+
+/* ================= INIT ================= */
+(function init(){
+  setAuthMode('login');
+  const s=store.session();
+  if(s&&store.users()[s]){USERNAME=s;boot()}
+})();
+</script>
+</body>
+</html>
