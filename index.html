@@ -117,6 +117,18 @@ th{color:var(--muted);font-weight:500;font-size:11px;letter-spacing:.5px;text-tr
   display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
 .hr{height:1px;background:var(--border2);margin:18px 0}
 .mini{font-size:12px;color:var(--faint)}
+.compet{background:linear-gradient(135deg,#2a1546,#160e24);border:1px solid var(--border);border-radius:18px;padding:24px}
+.compet .total{font-family:var(--serif);font-size:36px;color:#e7d3a8;line-height:1.1}
+.brow{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px}
+.brow+.brow{margin-top:3px}
+.brow.me{background:var(--accent-soft);border:1px solid var(--border)}
+.brow .rank{width:26px;color:var(--muted);text-align:center}
+.brow .nm{flex:1}
+.brow .val{font-weight:600;color:#e7d3a8;white-space:nowrap}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.86);display:flex;align-items:center;justify-content:center;z-index:80;padding:24px;cursor:zoom-out}
+.lb img{max-width:100%;max-height:90vh;border-radius:12px;border:1px solid var(--border)}
+.thumb{height:54px;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in;vertical-align:middle;object-fit:cover}
+.cta-attach{font-size:12px;color:var(--accent);background:var(--accent-soft);border:1px dashed var(--border);border-radius:10px;padding:9px 12px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -161,14 +173,14 @@ th{color:var(--muted);font-weight:500;font-size:11px;letter-spacing:.5px;text-tr
 const LS_USERS='ezo_users_v1', LS_SESSION='ezo_session_v1';
 const store={
   users(){try{return JSON.parse(localStorage.getItem(LS_USERS))||{}}catch(e){return {}}},
-  saveUsers(u){localStorage.setItem(LS_USERS,JSON.stringify(u))},
+  saveUsers(u){try{localStorage.setItem(LS_USERS,JSON.stringify(u));return true}catch(e){return false}},
   session(){return localStorage.getItem(LS_SESSION)},
   setSession(u){u?localStorage.setItem(LS_SESSION,u):localStorage.removeItem(LS_SESSION)}
 };
 function hash(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0}return 'h'+h}
 let U=null; // current user object (reference into users store)
 let USERNAME=null;
-function persist(){const u=store.users();u[USERNAME]=U;store.saveUsers(u)}
+function persist(){const u=store.users();u[USERNAME]=U;if(!store.saveUsers(u))toast('Не хватило места в браузере — попробуй скрин поменьше')}
 function blankData(name){return{
   name:name||'',created:new Date().toISOString().slice(0,10),
   survey:{}, tests:{}, sales:{entries:[],reels:[]},
@@ -251,6 +263,7 @@ let QUIZZES=[
 
 let PLAN_GOALS=['Продажа','Прогрев к личности','Экспертность','Прогрев к продукту','Охват'];
 let PLAN_FORMATS=['Рилс','Сторис','Пост','Карусель','Бесплатник'];
+let LEADERBOARD=[]; // [{name, earned, reels}] — общий рейтинг, ведёт преподаватель в админке
 
 /* Load content overrides: admin preview (localStorage) → content.json → built-in defaults */
 async function loadContent(){
@@ -264,7 +277,19 @@ async function loadContent(){
     if(Array.isArray(c.planGoals)&&c.planGoals.length)PLAN_GOALS=c.planGoals;
     if(Array.isArray(c.planFormats)&&c.planFormats.length)PLAN_FORMATS=c.planFormats;
     if(typeof c.testsEnabled==='boolean')TESTS_ENABLED=c.testsEnabled;
+    if(Array.isArray(c.leaderboard))LEADERBOARD=c.leaderboard;
   }
+}
+function buildBoard(){
+  const map={};
+  (LEADERBOARD||[]).forEach(e=>{if(e&&e.name)map[e.name]={name:e.name,earned:+e.earned||0,reels:+e.reels||0}});
+  const myName=(U.name||USERNAME);
+  const myEarned=U.sales.entries.reduce((s,e)=>s+ +e.amount,0);
+  const myReels=U.sales.reels.length;
+  const cur=map[myName]||{name:myName,earned:0,reels:0};
+  cur.earned=Math.max(cur.earned,myEarned);cur.reels=Math.max(cur.reels,myReels);cur.me=true;
+  map[myName]=cur;
+  return Object.values(map);
 }
 
 /* ================= AUTH UI ================= */
@@ -298,7 +323,7 @@ function logout(){store.setSession(null);location.reload()}
 
 /* ================= APP BOOT ================= */
 const NAV=[
- {id:'home',ic:'☾',t:'Дашборд'},
+ {id:'home',ic:'☾',t:'Главная страница'},
  {id:'tests',ic:'📝',t:'Тесты'},
  {id:'survey',ic:'✅',t:'Опросник тем'},
  {id:'sales',ic:'💰',t:'Мои продажи'},
@@ -328,6 +353,32 @@ function go(p){page=p;
 }
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
   clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200)}
+function showImg(src){const d=document.createElement('div');d.className='lb';d.onclick=()=>d.remove();
+  const i=document.createElement('img');i.src=src;d.appendChild(i);document.body.appendChild(d)}
+function compressImg(file,cb){const r=new FileReader();r.onload=()=>{const img=new Image();
+  img.onload=()=>{const max=900;let w=img.width,h=img.height;if(w>max||h>max){const s=max/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s)}
+    const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);
+    cb(cv.toDataURL('image/jpeg',0.7))};img.onerror=()=>cb(null);img.src=r.result};r.onerror=()=>cb(null);r.readAsDataURL(file)}
+function boardHTML(){
+  const b=buildBoard();
+  const total=b.reduce((s,x)=>s+x.earned,0);
+  const byEarn=b.slice().sort((a,c)=>c.earned-a.earned);
+  const byReels=b.slice().sort((a,c)=>c.reels-a.reels).filter(x=>x.reels>0);
+  const medal=i=>['🥇','🥈','🥉'][i]||(i+1)+'.';
+  const earnRows=byEarn.map((x,i)=>`<div class="brow ${x.me?'me':''}"><span class="rank">${medal(i)}</span>
+    <span class="nm">${esc(x.name)}${x.me?' <span class="mini">(ты)</span>':''}</span><span class="val">${x.earned.toLocaleString('ru-RU')} ₽</span></div>`).join('');
+  const reelRows=byReels.length?byReels.map((x,i)=>`<div class="brow ${x.me?'me':''}"><span class="rank">${medal(i)}</span>
+    <span class="nm">${esc(x.name)}${x.me?' <span class="mini">(ты)</span>':''}</span><span class="val">🔥 ${x.reels}</span></div>`).join('')
+    :'<div class="mini">Пока нет залетевших рилс — стань первой 🔥</div>';
+  return `<div class="compet">
+    <div class="mini" style="letter-spacing:2px;text-transform:uppercase;color:var(--accent)">Соревнование ЭзоДвиж</div>
+    <div class="total">${total.toLocaleString('ru-RU')} ₽</div>
+    <div class="muted">заработали вместе все ученики 💜 Внеси свою продажу — и подними общий счёт.</div>
+    <div class="grid g2" style="margin-top:18px">
+      <div><div class="mini" style="margin-bottom:6px">💰 Кто сколько заработал</div>${earnRows}</div>
+      <div><div class="mini" style="margin-bottom:6px">🔥 У кого сколько залетевших рилс</div>${reelRows}</div>
+    </div></div>`;
+}
 function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function today(){return new Date().toISOString().slice(0,10)}
 
@@ -355,8 +406,9 @@ function pgHome(){
   if(U.calls.next){const d=Math.ceil((new Date(U.calls.next)-new Date(today()))/864e5);
     nextTxt=new Date(U.calls.next).toLocaleDateString('ru-RU');dleft=d>=0?`через ${d} дн.`:'прошёл'}
   return `
-  <div class="page-head"><div><span class="pill">Дашборд</span><h1 style="margin-top:10px">Привет, ${esc(U.name||USERNAME)} ☾</h1>
+  <div class="page-head"><div><span class="pill">Главная страница</span><h1 style="margin-top:10px">Привет, ${esc(U.name||USERNAME)} ☾</h1>
     <div class="muted">Твой путь в ЭзоДвиж — по шагам.</div></div></div>
+  <div style="margin-bottom:16px">${boardHTML()}</div>
   <div class="grid g3" style="margin-bottom:16px">
     <div class="card stat"><span class="n">${pct}%</span><span class="l">Тем усвоено</span>
       <div class="bar" style="margin-top:10px"><i style="width:${pct}%"></i></div></div>
@@ -488,18 +540,24 @@ function pgSurvey(){
 function setSurvey(i,level){const t=THEMES[i];U.survey[t]=Object.assign({},U.survey[t],{level});persist();render()}
 
 /* ---------- SALES ---------- */
+let saleShot=null, reelShot=null;
+function pickShot(kind,inp){const f=inp.files[0];if(!f)return;compressImg(f,d=>{if(!d)return toast('Не удалось прочитать фото');
+  const prev=document.getElementById(kind==='sale'?'sa-prev':'re-prev');
+  if(kind==='sale')saleShot=d;else reelShot=d;
+  if(prev){prev.src=d;prev.classList.remove('hide')}toast('Скрин прикреплён ✓')})}
 function pgSales(){
   const total=U.sales.entries.reduce((s,e)=>s+Number(e.amount||0),0);
+  const shotThumb=(has,ref)=>has?`<img class="thumb" src="${ref}" onclick="showImg(this.src)" style="margin-top:8px">`:'';
   const entries=U.sales.entries.slice().reverse().map((e,ri)=>{
     const idx=U.sales.entries.length-1-ri;
     return `<div class="list-item"><div class="row between"><b>${Number(e.amount).toLocaleString('ru-RU')} ₽</b>
       <span class="mini">${esc(e.date)} <span onclick="delSale(${idx})" style="cursor:pointer;color:var(--bad)"> ✕</span></span></div>
-      <div class="muted">${esc(e.note||'')}</div></div>`}).join('')||'<div class="mini">Пока нет записей.</div>';
+      <div class="muted">${esc(e.note||'')}</div>${shotThumb(e.shot,e.shot)}</div>`}).join('')||'<div class="mini">Пока нет записей.</div>';
   const reels=U.sales.reels.slice().reverse().map((r,ri)=>{
     const idx=U.sales.reels.length-1-ri;
     return `<div class="list-item"><div class="row between"><b>👁 ${Number(r.reach).toLocaleString('ru-RU')}</b>
       <span class="mini">${esc(r.date)} <span onclick="delReel(${idx})" style="cursor:pointer;color:var(--bad)"> ✕</span></span></div>
-      <div>${esc(r.idea)}</div></div>`}).join('')||'<div class="mini">Пока нет залетевших рилс.</div>';
+      <div>${esc(r.idea)}</div>${shotThumb(r.shot,r.shot)}</div>`}).join('')||'<div class="mini">Пока нет залетевших рилс.</div>';
   return `<div class="page-head"><div><span class="pill">Продажи</span><h1 style="margin-top:10px">Мои продажи и охваты</h1></div></div>
   <div class="grid g3" style="margin-bottom:18px">
     <div class="card stat"><span class="n">${total.toLocaleString('ru-RU')} ₽</span><span class="l">Заработано с начала проекта</span></div>
@@ -511,23 +569,29 @@ function pgSales(){
       <div class="row"><div style="flex:1"><label>Сумма, ₽</label><input id="sa-amt" type="number" placeholder="3000"></div>
       <div style="flex:1"><label>Дата</label><input id="sa-date" type="date" value="${today()}"></div></div>
       <label style="margin-top:10px">Что продала</label><input id="sa-note" placeholder="Расклад на отношения">
+      <div class="cta-attach">📎 Прикрепи <b>скрин оплаты</b> — так преподаватель подтвердит твой результат, и ты честно попадёшь в рейтинг ЭзоДвиж 💜</div>
+      <label style="margin-top:8px">Скрин оплаты</label><input type="file" accept="image/*" onchange="pickShot('sale',this)">
+      <img id="sa-prev" class="thumb hide" style="margin-top:8px">
       <button class="btn" style="margin-top:12px" onclick="addSale()">Добавить</button>
       <div class="hr"></div><h3 style="font-size:16px">История</h3>${entries}</div>
     <div class="card"><h3>🔥 Залетевший рилс</h3><div class="hr"></div>
       <label>Смысл / о чём рилс</label><input id="re-idea" placeholder="Проверка ритуала на деньги">
       <div class="row" style="margin-top:10px"><div style="flex:1"><label>Охваты</label><input id="re-reach" type="number" placeholder="12000"></div>
       <div style="flex:1"><label>Дата</label><input id="re-date" type="date" value="${today()}"></div></div>
+      <div class="cta-attach">📎 Прикрепи <b>скрин просмотров</b> — докажи, что рилс залетел, и займи место в топе 🔥</div>
+      <label style="margin-top:8px">Скрин просмотров</label><input type="file" accept="image/*" onchange="pickShot('reel',this)">
+      <img id="re-prev" class="thumb hide" style="margin-top:8px">
       <button class="btn" style="margin-top:12px" onclick="addReel()">Добавить</button>
       <div class="hr"></div><h3 style="font-size:16px">Что залетало</h3>${reels}</div>
   </div>`;
 }
 function addSale(){const a=document.getElementById('sa-amt').value;if(!a)return toast('Впиши сумму');
-  U.sales.entries.push({amount:a,date:document.getElementById('sa-date').value||today(),note:document.getElementById('sa-note').value});
-  persist();toast('Продажа добавлена ✓');render()}
+  U.sales.entries.push({amount:a,date:document.getElementById('sa-date').value||today(),note:document.getElementById('sa-note').value,shot:saleShot});
+  saleShot=null;persist();toast('Продажа добавлена ✓');render()}
 function delSale(i){U.sales.entries.splice(i,1);persist();render()}
 function addReel(){const idea=document.getElementById('re-idea').value;if(!idea)return toast('Впиши смысл рилса');
-  U.sales.reels.push({idea,reach:document.getElementById('re-reach').value||0,date:document.getElementById('re-date').value||today()});
-  persist();toast('Рилс добавлен ✓');render()}
+  U.sales.reels.push({idea,reach:document.getElementById('re-reach').value||0,date:document.getElementById('re-date').value||today(),shot:reelShot});
+  reelShot=null;persist();toast('Рилс добавлен ✓');render()}
 function delReel(i){U.sales.reels.splice(i,1);persist();render()}
 
 /* ---------- NOTEBOOK ---------- */
